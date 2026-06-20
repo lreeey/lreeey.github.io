@@ -15,28 +15,50 @@
             font-family: 'Inter', sans-serif;
         }
         .hud-scan-box {
-            box-shadow: 0 0 0 9999px rgba(10, 10, 13, 0.7);
+            box-shadow: 0 0 0 9999px rgba(10, 10, 13, 0.75);
         }
         .neon-border {
             box-shadow: 0 0 15px rgba(0, 229, 255, 0.4);
         }
+        /* Camera flash screen flash effect */
+        .flash-active {
+            animation: cameraFlash 0.3s ease-out;
+        }
+        @keyframes cameraFlash {
+            0% { background-color: rgba(255, 255, 255, 1); }
+            100% { background-color: rgba(255, 255, 255, 0); }
+        }
+        /* Hextall holographic animation */
+        .holo-card {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border: 2px solid rgba(0, 229, 255, 0.3);
+            box-shadow: 0 0 30px rgba(0, 229, 255, 0.2), inset 0 0 15px rgba(0, 229, 255, 0.1);
+        }
     </style>
 </head>
-<body class="text-gray-100 flex flex-col min-h-screen">
+<body class="text-gray-100 flex flex-col min-h-screen relative overflow-hidden">
+
+    <!-- Flash Overlay Panel -->
+    <div id="flash-effect" class="absolute inset-0 pointer-events-none z-50"></div>
 
     <!-- Header -->
-    <header class="border-b border-gray-900 bg-gray-950/80 backdrop-blur px-4 py-3 shrink-0 flex items-center justify-between">
+    <header class="border-b border-gray-900 bg-gray-950/90 backdrop-blur px-4 py-3 shrink-0 flex items-center justify-between z-30">
         <div>
             <span class="text-[9px] uppercase tracking-[0.25em] text-cyan-400 font-bold block">Mobile Companion</span>
             <h1 class="text-lg font-display font-bold text-white tracking-wider">MARVEL '92 AI SCANNER</h1>
         </div>
-        <button onclick="toggleConfig()" class="text-xs px-3 py-1.5 bg-gray-900 border border-gray-800 rounded-lg hover:bg-gray-800 transition">
-            ⚙️ Setup API
-        </button>
+        <div class="flex gap-2">
+            <button id="quick-sheet-btn" onclick="openLiveSheet()" class="hidden text-xs px-2.5 py-1.5 bg-cyan-950/40 border border-cyan-800 text-cyan-400 rounded-lg hover:bg-cyan-950/60 transition">
+                📊 Sheet
+            </button>
+            <button onclick="toggleConfig()" class="text-xs px-3 py-1.5 bg-gray-900 border border-gray-800 rounded-lg hover:bg-gray-800 transition">
+                ⚙️ Setup
+            </button>
+        </div>
     </header>
 
     <!-- Configuration Overlay Box -->
-    <section id="config-panel" class="hidden shrink-0 bg-gray-950 p-4 border-b border-cyan-950/40">
+    <section id="config-panel" class="hidden shrink-0 bg-gray-950 p-4 border-b border-cyan-950/40 z-30 relative">
         <div class="max-w-md mx-auto space-y-3">
             <h3 class="text-xs font-bold text-cyan-400 uppercase tracking-widest">Connect Your System API</h3>
             
@@ -46,7 +68,7 @@
             </div>
 
             <div>
-                <label class="block text-[10px] text-gray-400 mb-1">Gemini API Key (Leave blank if saved in sheet parameters)</label>
+                <label class="block text-[10px] text-gray-400 mb-1">Gemini API Key (Leave blank if saved in script properties)</label>
                 <input type="password" id="gemini-key" placeholder="Enter your Google AI Studio API Key..." class="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-cyan-400">
             </div>
             
@@ -72,7 +94,7 @@
 
         <!-- Graphic HUD overlay frame -->
         <div class="absolute inset-0 z-10 pointer-events-none flex items-center justify-center">
-            <div class="w-72 h-96 border-2 border-cyan-400 rounded-xl relative hud-scan-box flex flex-col justify-between p-4">
+            <div class="w-72 h-96 border-2 border-cyan-400/80 rounded-xl relative hud-scan-box flex flex-col justify-between p-4">
                 <!-- Glowing corner accents -->
                 <div class="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-cyan-400 rounded-tl-lg neon-border"></div>
                 <div class="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-cyan-400 rounded-tr-lg neon-border"></div>
@@ -80,54 +102,82 @@
                 <div class="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-cyan-400 rounded-br-lg neon-border"></div>
                 
                 <!-- Helper instructions inside target locator -->
-                <div class="text-[10px] bg-black/70 border border-cyan-900/60 rounded p-1.5 text-center text-cyan-400 w-full select-none backdrop-blur-xs">
-                    POSITION CARD HERE
+                <div class="text-[10px] bg-black/85 border border-cyan-900/60 rounded p-1.5 text-center text-cyan-400 w-full select-none backdrop-blur-xs">
+                    ALIGN CARD INSIDE FRAME
                 </div>
                 
-                <div class="text-[9px] text-gray-400 bg-black/60 p-1 text-center rounded select-none">
-                    Ensure camera zoom captures card text clearly.
+                <div class="text-[9px] text-gray-300 bg-black/85 border border-gray-900 p-2 text-center rounded select-none">
+                    Keep card parallel to screen. Ensure good lighting.
                 </div>
             </div>
         </div>
 
-        <!-- Floating analysis toast window -->
-        <div id="status-indicator" class="absolute top-4 left-4 right-4 z-20 hidden">
-            <div class="bg-gray-950/90 border border-cyan-950 border-cyan-400/20 backdrop-blur p-3 rounded-xl flex items-center gap-3">
+        <!-- Scanning processing loader card -->
+        <div id="status-indicator" class="absolute inset-x-4 top-4 z-20 hidden">
+            <div class="bg-gray-950/95 border border-cyan-500/30 backdrop-blur-md p-4 rounded-xl flex items-center gap-3 shadow-2xl">
                 <span class="w-3.5 h-3.5 rounded-full bg-cyan-400 animate-ping"></span>
                 <div class="grow">
-                    <h4 id="status-headline" class="text-xs font-bold text-white uppercase tracking-wider">Analyzing Card...</h4>
-                    <p id="status-details" class="text-[10px] text-gray-400">Passing frame data to Gemini Multimodal engine.</p>
+                    <h4 class="text-xs font-bold text-white uppercase tracking-wider">AI Analysis Running...</h4>
+                    <p class="text-[10px] text-gray-400">Evaluating card characteristics and details...</p>
                 </div>
             </div>
         </div>
 
         <!-- Bottom Controller Panel -->
-        <section class="relative z-20 w-full mt-auto bg-gradient-to-t from-black via-black/85 to-transparent px-6 pb-8 pt-10 flex flex-col items-center gap-4">
+        <section class="relative z-20 w-full mt-auto bg-gradient-to-t from-black via-black/90 to-transparent px-6 pb-8 pt-10 flex flex-col items-center gap-4">
             
             <!-- Real-Time AI scan trigger button -->
-            <button onclick="captureAndScanCard()" class="w-16 h-16 rounded-full bg-white border-4 border-cyan-400 hover:bg-cyan-200 active:scale-95 transition flex items-center justify-center shadow-lg">
+            <button id="snap-btn" onclick="captureAndScanCard()" class="w-16 h-16 rounded-full bg-white border-4 border-cyan-400 hover:bg-cyan-200 active:scale-95 transition flex items-center justify-center shadow-lg">
                 <div class="w-10 h-10 rounded-full bg-cyan-400"></div>
             </button>
-            <span class="text-xs text-cyan-400 font-semibold uppercase tracking-widest select-none">Snap AI Scan</span>
-
-            <!-- Last Scanned Card Info Panel -->
-            <div id="scan-history" class="hidden w-full max-w-sm bg-gray-950/95 border border-cyan-950 rounded-xl p-3 flex gap-3 backdrop-blur shadow-2xl">
-                <div class="w-12 h-12 rounded-lg bg-cyan-950/50 border border-cyan-900/40 flex items-center justify-center font-display font-bold text-lg text-cyan-400" id="hist-num">
-                    #46
-                </div>
-                <div class="grow flex flex-col justify-center">
-                    <h4 class="text-xs font-bold text-white" id="hist-name">Jean Grey</h4>
-                    <div class="flex items-center gap-1.5 mt-0.5">
-                        <span class="text-[9px] font-bold text-cyan-400 uppercase tracking-wider px-1.5 py-0.5 bg-cyan-950/40 rounded border border-cyan-900" id="hist-parallel">PMG Blue</span>
-                        <span class="text-[9px] font-mono text-gray-400" id="hist-serial">Sn: 12/50</span>
-                    </div>
-                </div>
-                <div class="text-[10px] text-green-400 font-bold self-center flex items-center gap-1 shrink-0">
-                    ✅ Vaulted
-                </div>
-            </div>
+            <span class="text-xs text-cyan-400 font-bold uppercase tracking-widest select-none">SNAP AI SCAN</span>
         </section>
     </main>
+
+    <!-- FULL INTERACTIVE SUCCESS RECEIPT MODAL (THE APP EXPERIENCE) -->
+    <section id="success-modal" class="hidden absolute inset-0 z-40 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-6">
+        <div class="w-full max-w-sm holo-card rounded-2xl p-6 flex flex-col items-center text-center shadow-2xl animate-bounce-short">
+            
+            <!-- Green check seal -->
+            <div class="w-12 h-12 bg-emerald-500/10 border border-emerald-500/30 rounded-full flex items-center justify-center text-emerald-400 text-xl font-bold mb-4">
+                ✓
+            </div>
+
+            <span class="text-[10px] uppercase tracking-[0.2em] text-emerald-400 font-bold">Successfully Logged!</span>
+            <h2 class="text-lg font-bold text-white mt-1">Spreadsheet Database Updated</h2>
+            
+            <!-- Holographic Card Render Widget -->
+            <div class="w-full bg-slate-950/80 border border-slate-900 rounded-xl p-4 my-6 text-left relative overflow-hidden">
+                <div class="absolute top-0 right-0 px-2 py-0.5 bg-cyan-500/10 border-b border-l border-cyan-500/30 text-[9px] font-mono text-cyan-400 uppercase font-bold" id="rec-type">
+                    Parallel Pull
+                </div>
+                
+                <div class="flex items-center gap-4">
+                    <div class="w-14 h-14 bg-cyan-950/40 border border-cyan-500/30 rounded-lg flex items-center justify-center font-display font-black text-2xl text-cyan-400 shadow-inner" id="rec-num">
+                        #46
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-white leading-tight" id="rec-character">Jean Grey</h3>
+                        <p class="text-xs text-gray-400 mt-1">Parallel: <span class="text-cyan-400 font-bold" id="rec-parallel">PMG Blue</span></p>
+                        <p class="text-xs text-gray-400 mt-0.5">Serial stamp: <span class="text-gray-300 font-mono" id="rec-serial">12/50</span></p>
+                    </div>
+                </div>
+            </div>
+
+            <p class="text-xs text-gray-400 max-w-xs mb-6" id="rec-action">
+                Checked standard base card off your checklist.
+            </p>
+
+            <div class="w-full flex flex-col gap-2">
+                <button onclick="dismissSuccessModal()" class="w-full py-2.5 bg-cyan-400 text-black font-extrabold rounded-xl text-xs tracking-wider uppercase hover:bg-cyan-300 active:scale-98 transition">
+                    Scan Another Card
+                </button>
+                <button onclick="dismissSuccessModal(); openLiveSheet();" class="w-full py-2.5 bg-gray-900 border border-gray-800 text-gray-300 rounded-xl text-xs hover:bg-gray-800 transition">
+                    View Google Sheet
+                </button>
+            </div>
+        </div>
+    </section>
 
     <script>
         let stream = null;
@@ -149,6 +199,11 @@
                 config = JSON.parse(saved);
                 document.getElementById('sheets-url').value = config.sheetsUrl || "";
                 document.getElementById('gemini-key').value = config.geminiKey || "";
+                
+                // Show the quick sheet button if sheetsUrl is configured
+                if (config.sheetsUrl) {
+                    document.getElementById('quick-sheet-btn').classList.remove('hidden');
+                }
             } else {
                 toggleConfig(); // Force show configuration if not set up
             }
@@ -165,7 +220,20 @@
             
             localStorage.setItem('marvel_scanner_config', JSON.stringify(config));
             toggleConfig();
+            
+            if (config.sheetsUrl) {
+                document.getElementById('quick-sheet-btn').classList.remove('hidden');
+            }
             alert("App parameters updated successfully!");
+        }
+
+        function openLiveSheet() {
+            if (config.sheetsUrl) {
+                // Extracts spreadsheet ID from web app macro URL if possible to redirect directly to user's sheet
+                window.open(config.sheetsUrl, '_blank');
+            } else {
+                alert("Please save your Google Sheets Web App URL first.");
+            }
         }
 
         // Initialize user device back-camera video stream
@@ -186,7 +254,6 @@
                 video.srcObject = stream;
             } catch (err) {
                 console.warn("Back camera facingMode failed. Attempting generic video setup:", err);
-                // Fallback parameter set if exact back camera throws an environment error (like inside emulator)
                 try {
                     stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
                     video.srcObject = stream;
@@ -196,21 +263,33 @@
             }
         }
 
+        // Trigger flash feedback animation
+        function triggerFlash() {
+            if (navigator.vibrate) navigator.vibrate(80); // Tactile trigger vibration
+            
+            const flashEl = document.getElementById('flash-effect');
+            flashEl.classList.add('flash-active');
+            setTimeout(() => {
+                flashEl.classList.remove('flash-active');
+            }, 300);
+        }
+
         // Process picture framing, base64 compilation, and API network POST
         async function captureAndScanCard() {
             if (!config.sheetsUrl) {
-                alert("Setup Required: Please configure your Google Sheets Web App Deployment URL in the ⚙️ settings panel first.");
+                alert("Setup Required: Please configure your Google Sheets Web App Deployment URL in the settings panel first.");
                 toggleConfig();
                 return;
             }
 
+            // UI Feedback
+            triggerFlash();
+
             const video = document.getElementById('webcam-preview');
             const canvas = document.getElementById('photo-canvas');
             const ctx = canvas.getContext('2d');
-            
             const statusDiv = document.getElementById('status-indicator');
-            const headline = document.getElementById('status-headline');
-            const details = document.getElementById('status-details');
+            const snapBtn = document.getElementById('snap-btn');
 
             // Draw current video stream frame onto canvas object
             canvas.width = video.videoWidth;
@@ -220,17 +299,17 @@
             // Export frame into JPEG data base64 stream string
             const base64Data = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
 
-            // Render Loader UI
+            // Render Loader UI and disable capture button temporarily
             statusDiv.classList.remove('hidden');
-            headline.textContent = "AI Analysis Processing...";
-            details.textContent = "Passing frame stream to Gemini Vision AI...";
+            snapBtn.disabled = true;
+            snapBtn.classList.add('opacity-40');
 
             try {
                 const response = await fetch(config.sheetsUrl, {
                     method: 'POST',
                     mode: 'cors',
                     headers: {
-                        'Content-Type': 'text/plain' // Helps avoid preflight issues inside Sheets API environment
+                        'Content-Type': 'text/plain' // Helps avoid preflight CORS issues inside Sheets API environment
                     },
                     body: JSON.stringify({
                         image: base64Data,
@@ -244,32 +323,48 @@
                     throw new Error(result.error || "System failed committing card properties.");
                 }
 
-                // Render successful scanner update UI
-                headline.textContent = "Analysis Succeeded!";
-                details.textContent = result.database || "Database checked successfully!";
-                
-                // Show History Box details
-                document.getElementById('hist-num').textContent = `#${result.card.cardNumber}`;
-                document.getElementById('hist-name').textContent = result.card.character;
-                document.getElementById('hist-parallel').textContent = result.card.parallel;
-                document.getElementById('hist-serial').textContent = `Sn: ${result.card.serial}`;
-                
-                document.getElementById('scan-history').classList.remove('hidden');
+                // Play long success vibration
+                if (navigator.vibrate) navigator.vibrate([100, 50, 150]);
 
-                // Auto clear scan toast banner after 4 seconds
-                setTimeout(() => {
-                    statusDiv.classList.add('hidden');
-                }, 4000);
+                // Hide loader indicator
+                statusDiv.classList.add('hidden');
+
+                // Populate and launch the Interactive Success Modal
+                document.getElementById('rec-num').textContent = `#${result.card.cardNumber}`;
+                document.getElementById('rec-character').textContent = result.card.character;
+                document.getElementById('rec-parallel').textContent = result.card.parallel;
+                document.getElementById('rec-serial').textContent = result.card.serial || '—';
+                document.getElementById('rec-action').textContent = result.database || 'Checklist updated.';
+                
+                // Set Modal Type header
+                const typeHeader = document.getElementById('rec-type');
+                if (result.card.parallel === "Base Standard") {
+                    typeHeader.textContent = "Base Set Check";
+                    typeHeader.className = "absolute top-0 right-0 px-2 py-0.5 bg-emerald-500/10 border-b border-l border-emerald-500/30 text-[9px] font-mono text-emerald-400 uppercase font-bold";
+                } else if (result.card.parallel.includes("Variant")) {
+                    typeHeader.textContent = "Variant Cover";
+                    typeHeader.className = "absolute top-0 right-0 px-2 py-0.5 bg-purple-500/10 border-b border-l border-purple-500/30 text-[9px] font-mono text-purple-400 uppercase font-bold";
+                } else {
+                    typeHeader.textContent = "Holo Vault Pull";
+                    typeHeader.className = "absolute top-0 right-0 px-2 py-0.5 bg-cyan-500/10 border-b border-l border-cyan-500/30 text-[9px] font-mono text-cyan-400 uppercase font-bold";
+                }
+
+                // Show Success Modal overlay
+                document.getElementById('success-modal').classList.remove('hidden');
 
             } catch (err) {
-                headline.textContent = "Scanning Failure";
-                details.textContent = err.message;
+                alert("Scanning Failure: " + err.message);
                 console.error(err);
-                
-                setTimeout(() => {
-                    statusDiv.classList.add('hidden');
-                }, 6000);
+                statusDiv.classList.add('hidden');
+            } finally {
+                // Re-enable capture trigger
+                snapBtn.disabled = false;
+                snapBtn.classList.remove('opacity-40');
             }
+        }
+
+        function dismissSuccessModal() {
+            document.getElementById('success-modal').classList.add('hidden');
         }
     </script>
 </body>
