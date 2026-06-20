@@ -102,12 +102,12 @@
                 <div class="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-cyan-400 rounded-br-lg neon-border"></div>
                 
                 <!-- Helper instructions inside target locator -->
-                <div class="text-[10px] bg-black/85 border border-cyan-900/60 rounded p-1.5 text-center text-cyan-400 w-full select-none backdrop-blur-xs">
-                    ALIGN CARD INSIDE FRAME
+                <div id="hud-instructions" class="text-[10px] bg-black/85 border border-cyan-900/60 rounded p-1.5 text-center text-cyan-400 w-full select-none backdrop-blur-xs">
+                    STEP 1: ALIGN CARD FRONT
                 </div>
                 
-                <div class="text-[9px] text-gray-300 bg-black/85 border border-gray-900 p-2 text-center rounded select-none">
-                    Keep card parallel to screen. Ensure good lighting.
+                <div id="hud-details" class="text-[9px] text-gray-300 bg-black/85 border border-gray-900 p-2 text-center rounded select-none">
+                    Snap the front illustration side first.
                 </div>
             </div>
         </div>
@@ -117,8 +117,8 @@
             <div class="bg-gray-950/95 border border-cyan-500/30 backdrop-blur-md p-4 rounded-xl flex items-center gap-3 shadow-2xl">
                 <span class="w-3.5 h-3.5 rounded-full bg-cyan-400 animate-ping"></span>
                 <div class="grow">
-                    <h4 class="text-xs font-bold text-white uppercase tracking-wider">AI Analysis Running...</h4>
-                    <p class="text-[10px] text-gray-400">Evaluating card characteristics and details...</p>
+                    <h4 class="text-xs font-bold text-white uppercase tracking-wider" id="status-headline">Capturing Front...</h4>
+                    <p class="text-[10px] text-gray-400" id="status-subline">Ready for capture.</p>
                 </div>
             </div>
         </div>
@@ -128,9 +128,9 @@
             
             <!-- Real-Time AI scan trigger button -->
             <button id="snap-btn" onclick="captureAndScanCard()" class="w-16 h-16 rounded-full bg-white border-4 border-cyan-400 hover:bg-cyan-200 active:scale-95 transition flex items-center justify-center shadow-lg">
-                <div class="w-10 h-10 rounded-full bg-cyan-400"></div>
+                <div id="snap-btn-inner" class="w-10 h-10 rounded-full bg-cyan-400 transition-all duration-350"></div>
             </button>
-            <span class="text-xs text-cyan-400 font-bold uppercase tracking-widest select-none">SNAP AI SCAN</span>
+            <span id="snap-btn-label" class="text-xs text-cyan-400 font-bold uppercase tracking-widest select-none">SNAP FRONT</span>
         </section>
     </main>
 
@@ -181,6 +181,11 @@
 
     <script>
         let stream = null;
+        
+        // Dual Scanning States
+        let currentStep = "front"; // "front" or "back"
+        let imageFrontBase64 = null;
+        let imageBackBase64 = null;
 
         // Configuration variables saved locally in browser cache
         let config = {
@@ -282,14 +287,17 @@
                 return;
             }
 
-            // UI Feedback
-            triggerFlash();
-
             const video = document.getElementById('webcam-preview');
             const canvas = document.getElementById('photo-canvas');
             const ctx = canvas.getContext('2d');
             const statusDiv = document.getElementById('status-indicator');
+            const statusHeadline = document.getElementById('status-headline');
+            const statusSubline = document.getElementById('status-subline');
             const snapBtn = document.getElementById('snap-btn');
+            const snapBtnInner = document.getElementById('snap-btn-inner');
+            const snapBtnLabel = document.getElementById('snap-btn-label');
+            const hudInstructions = document.getElementById('hud-instructions');
+            const hudDetails = document.getElementById('hud-details');
 
             // Draw current video stream frame onto canvas object
             canvas.width = video.videoWidth;
@@ -298,8 +306,40 @@
 
             // Export frame into JPEG data base64 stream string
             const base64Data = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+            
+            triggerFlash();
 
+            if (currentStep === "front") {
+                // Phase 1: Captured Front Side Successfully
+                imageFrontBase64 = base64Data;
+                currentStep = "back";
+                
+                // Update interface to direct user to flip the card
+                hudInstructions.textContent = "STEP 2: ALIGN CARD BACK";
+                hudInstructions.className = "text-[10px] bg-black/85 border border-purple-900/60 rounded p-1.5 text-center text-purple-400 w-full select-none backdrop-blur-xs";
+                hudDetails.textContent = "Flip card over to capture the serial number and statistics.";
+                
+                snapBtnInner.className = "w-10 h-10 rounded-full bg-purple-500";
+                snapBtnLabel.textContent = "SNAP BACK";
+                snapBtnLabel.className = "text-xs text-purple-400 font-bold uppercase tracking-widest select-none";
+                
+                // Quick screen alert notification
+                statusHeadline.textContent = "Front Saved!";
+                statusSubline.textContent = "Now flip card over and snap the back.";
+                statusDiv.classList.remove('hidden');
+                setTimeout(() => {
+                    statusDiv.classList.add('hidden');
+                }, 2000);
+                
+                return;
+            }
+
+            // Phase 2: Captured Back Side. Submit both images to backend.
+            imageBackBase64 = base64Data;
+            
             // Render Loader UI and disable capture button temporarily
+            statusHeadline.textContent = "Analyzing Both Sides...";
+            statusSubline.textContent = "Gemini is cross-referencing front and back textures...";
             statusDiv.classList.remove('hidden');
             snapBtn.disabled = true;
             snapBtn.classList.add('opacity-40');
@@ -312,7 +352,8 @@
                         'Content-Type': 'text/plain' // Helps avoid preflight CORS issues inside Sheets API environment
                     },
                     body: JSON.stringify({
-                        image: base64Data,
+                        imageFront: imageFrontBase64,
+                        imageBack: imageBackBase64,
                         apiKey: config.geminiKey
                     })
                 });
@@ -357,10 +398,32 @@
                 console.error(err);
                 statusDiv.classList.add('hidden');
             } finally {
-                // Re-enable capture trigger
-                snapBtn.disabled = false;
-                snapBtn.classList.remove('opacity-40');
+                // Reset states for subsequent captures
+                resetScanStates();
             }
+        }
+
+        function resetScanStates() {
+            const snapBtn = document.getElementById('snap-btn');
+            const snapBtnInner = document.getElementById('snap-btn-inner');
+            const snapBtnLabel = document.getElementById('snap-btn-label');
+            const hudInstructions = document.getElementById('hud-instructions');
+            const hudDetails = document.getElementById('hud-details');
+
+            currentStep = "front";
+            imageFrontBase64 = null;
+            imageBackBase64 = null;
+            
+            hudInstructions.textContent = "STEP 1: ALIGN CARD FRONT";
+            hudInstructions.className = "text-[10px] bg-black/85 border border-cyan-900/60 rounded p-1.5 text-center text-cyan-400 w-full select-none backdrop-blur-xs";
+            hudDetails.textContent = "Snap the front illustration side first.";
+            
+            snapBtnInner.className = "w-10 h-10 rounded-full bg-cyan-400";
+            snapBtnLabel.textContent = "SNAP FRONT";
+            snapBtnLabel.className = "text-xs text-cyan-400 font-bold uppercase tracking-widest select-none";
+            
+            snapBtn.disabled = false;
+            snapBtn.classList.remove('opacity-40');
         }
 
         function dismissSuccessModal() {
