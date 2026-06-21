@@ -5,24 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Marvel '92 - AI Card Scanner Portal</title>
     
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
     
     <style>
-        body {
-            background-color: #0A0A0D;
-            font-family: 'Inter', sans-serif;
-        }
-        .hud-scan-box {
-            box-shadow: 0 0 0 9999px rgba(10, 10, 13, 0.75);
-        }
-        .neon-border {
-            box-shadow: 0 0 15px rgba(0, 229, 255, 0.4);
-        }
-        .flash-active {
-            animation: cameraFlash 0.3s ease-out;
-        }
+        body { background-color: #0A0A0D; font-family: 'Inter', sans-serif; }
+        .hud-scan-box { box-shadow: 0 0 0 9999px rgba(10, 10, 13, 0.75); }
+        .neon-border { box-shadow: 0 0 15px rgba(0, 229, 255, 0.4); }
+        .flash-active { animation: cameraFlash 0.3s ease-out; }
         @keyframes cameraFlash {
             0% { background-color: rgba(255, 255, 255, 1); }
             100% { background-color: rgba(255, 255, 255, 0); }
@@ -44,49 +34,41 @@
             <h1 class="text-lg font-display font-bold text-white tracking-wider">MARVEL '92 AI SCANNER</h1>
         </div>
         <div class="flex gap-2">
-            <button id="quick-sheet-btn" onclick="openLiveSheet()" class="hidden text-xs px-2.5 py-1.5 bg-cyan-950/40 border border-cyan-800 text-cyan-400 rounded-lg hover:bg-cyan-950/60 transition">
-                📊 Sheet
-            </button>
             <button onclick="toggleConfig()" class="text-xs px-3 py-1.5 bg-gray-900 border border-gray-800 rounded-lg hover:bg-gray-800 transition">
                 ⚙️ Setup
             </button>
         </div>
     </header>
-    
-<div id="sync-banner" style="display: none; background: #FFB300; color: #111; padding: 12px; font-weight: 700; text-align: center; border-radius: 10px; margin: 10px;">
-  ⚠️ Offline Mode Active (<span id="offline-count">0</span> Cards Cached)
-  <button id="sync-now-btn" onclick="syncOfflineQueue()" style="margin-left: 10px; background: #111; color: #fff; border: none; padding: 4px 10px; border-radius: 5px; cursor: pointer; font-size: 11px; font-weight: 800;">
-    Force Sync Now
-  </button>
-</div>
-    
+
+    <div id="batch-banner" class="bg-cyan-950/80 border-b border-cyan-500/30 px-4 py-2.5 flex items-center justify-between z-20 hidden">
+        <div class="flex items-center gap-2">
+            <span class="flex h-2 w-2 rounded-full bg-cyan-400 animate-pulse"></span>
+            <p class="text-xs font-bold text-cyan-300"><span id="queue-count">0</span> Cards in Current Batch</p>
+        </div>
+        <button onclick="processEntireBatchQueue()" class="text-[11px] bg-cyan-400 text-black font-extrabold px-3 py-1 rounded-md uppercase tracking-wider hover:bg-cyan-300">
+            ⚡ Process Batch
+        </button>
+    </div>
+
     <section id="config-panel" class="hidden shrink-0 bg-gray-950 p-4 border-b border-cyan-950/40 z-30 relative">
         <div class="max-w-md mx-auto space-y-3">
             <h3 class="text-xs font-bold text-cyan-400 uppercase tracking-widest">Connect Your System API</h3>
-            
             <div>
                 <label class="block text-[10px] text-gray-400 mb-1">Google Sheets Web App Deployment URL</label>
                 <input type="text" id="sheets-url" placeholder="https://script.google.com/macros/s/.../exec" class="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-cyan-400">
             </div>
-
             <div>
-                <label class="block text-[10px] text-gray-400 mb-1">Gemini API Key (Leave blank if saved in script properties)</label>
+                <label class="block text-[10px] text-gray-400 mb-1">Gemini API Key</label>
                 <input type="password" id="gemini-key" placeholder="Enter your Google AI Studio API Key..." class="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-cyan-400">
             </div>
-            
             <div class="flex gap-2">
-                <button onclick="saveConfiguration()" class="grow py-1.5 bg-cyan-400 text-black font-bold rounded-lg text-xs hover:bg-cyan-300">
-                    Save Config
-                </button>
-                <button onclick="toggleConfig()" class="px-3 py-1.5 bg-gray-900 text-gray-400 rounded-lg text-xs">
-                    Cancel
-                </button>
+                <button onclick="saveConfiguration()" class="grow py-1.5 bg-cyan-400 text-black font-bold rounded-lg text-xs hover:bg-cyan-300">Save Config</button>
+                <button onclick="toggleConfig()" class="px-3 py-1.5 bg-gray-900 text-gray-400 rounded-lg text-xs">Cancel</button>
             </div>
         </div>
     </section>
 
     <main class="grow relative flex flex-col justify-between overflow-hidden">
-        
         <video id="webcam-preview" autoplay playsinline muted class="absolute inset-0 w-full h-full object-cover z-0"></video>
         <canvas id="photo-canvas" class="hidden"></canvas>
 
@@ -97,10 +79,9 @@
                 <div class="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-cyan-400 rounded-bl-lg neon-border"></div>
                 <div class="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-cyan-400 rounded-br-lg neon-border"></div>
                 
-                <div id="hud-instructions" class="text-[10px] bg-black/85 border border-cyan-900/60 rounded p-1.5 text-center text-cyan-400 w-full select-none backdrop-blur-xs">
-                    STEP 1: ALIGN CARD FRONT
+                <div id="hud-instructions" class="text-[10px] bg-black/85 border border-cyan-900/60 rounded p-1.5 text-center text-cyan-400 w-full select-none font-bold">
+                    STEP 1: SNAP CARD FRONT
                 </div>
-                
                 <div id="hud-details" class="text-[9px] text-gray-300 bg-black/85 border border-gray-900 p-2 text-center rounded select-none">
                     Snap the front illustration side first.
                 </div>
@@ -111,31 +92,19 @@
             <div class="bg-gray-950/95 border border-cyan-500/30 backdrop-blur-md p-4 rounded-xl flex items-center gap-3 shadow-2xl">
                 <span class="w-3.5 h-3.5 rounded-full bg-cyan-400 animate-ping"></span>
                 <div class="grow">
-                    <h4 class="text-xs font-bold text-white uppercase tracking-wider" id="status-headline">Capturing Front...</h4>
-                    <p class="text-[10px] text-gray-400" id="status-subline">Ready for capture.</p>
+                    <h4 class="text-xs font-bold text-white uppercase tracking-wider" id="status-headline">Processing Scan</h4>
+                    <p class="text-[10px] text-gray-400" id="status-subline">Queue processing active.</p>
                 </div>
             </div>
         </div>
 
         <button id="abort-btn" onclick="resetScanStates()" class="absolute right-4 bottom-32 z-20 hidden bg-red-950/50 border border-red-900 text-red-400 text-xs px-3 py-1.5 rounded-lg">
-            ✕ Restart
+            ✕ Reset Card
         </button>
 
-        <style>
-            .button-container {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                gap: 16px;
-                width: 100%;
-                margin-top: auto;
-                background: linear-gradient(to top, black, rgba(0,0,0,0.9), transparent);
-                padding: 40px 24px 32px 24px;
-            }
-        </style>
-        <div class="relative z-20 button-container">
-            <button id="snap-btn" onclick="captureAndScanCard()" class="w-16 h-16 rounded-full bg-white border-4 border-cyan-400 hover:bg-cyan-200 active:scale-95 transition flex items-center justify-center shadow-lg">
-                <div id="snap-btn-inner" class="w-10 h-10 rounded-full bg-cyan-400 transition-all duration-350"></div>
+        <div class="relative z-20 flex flex-col items-center gap-4 w-full mt-auto bg-gradient-to-t from-black via-black/90 to-transparent pt-10 pb-8 px-6">
+            <button id="snap-btn" onclick="captureAndQueueCardFace()" class="w-16 h-16 rounded-full bg-white border-4 border-cyan-400 hover:bg-cyan-200 active:scale-95 transition flex items-center justify-center shadow-lg">
+                <div id="snap-btn-inner" class="w-10 h-10 rounded-full bg-cyan-400 transition-all duration-300"></div>
             </button>
             <span id="snap-btn-label" class="text-xs text-cyan-400 font-bold uppercase tracking-widest select-none">SNAP FRONT</span>
         </div>
@@ -143,16 +112,15 @@
 
     <section id="verification-modal" class="hidden absolute inset-0 z-40 bg-black/95 backdrop-blur-md flex flex-col items-center justify-center p-4 overflow-y-auto">
         <div class="w-full max-w-md holo-card rounded-2xl p-6 flex flex-col shadow-2xl space-y-4">
-            
             <div class="text-center">
                 <span class="text-[10px] uppercase tracking-[0.2em] text-cyan-400 font-bold">Verification Gatekeeper</span>
-                <h2 class="text-lg font-bold text-white mt-1">Review & Edit Detected Card</h2>
-                <p class="text-[11px] text-gray-400 mt-0.5">Correct any AI typos before writing to Google Sheets</p>
+                <h2 class="text-lg font-bold text-white mt-1">Review & Verify Scanned Card</h2>
+                <p class="text-[11px] text-gray-400 mt-0.5">Approve or adjust AI output rows before writing to database</p>
             </div>
 
             <div class="space-y-3 bg-gray-950/80 border border-slate-900 rounded-xl p-4">
                 <div class="grid grid-cols-3 gap-2">
-                    <div class="col-span-1">
+                    <div>
                         <label class="block text-[10px] text-gray-400 mb-1">Card #</label>
                         <input type="number" id="verify-card-number" class="w-full bg-gray-900 border border-gray-800 rounded px-2.5 py-1.5 text-xs text-white text-center font-bold font-mono">
                     </div>
@@ -164,18 +132,18 @@
 
                 <div class="grid grid-cols-2 gap-2">
                     <div>
-                        <label class="block text-[10px] text-gray-400 mb-1">Brand (Publisher)</label>
-                        <input type="text" id="verify-brand" placeholder="e.g. Upper Deck, Topps" class="w-full bg-gray-900 border border-gray-800 rounded px-2.5 py-1.5 text-xs text-white">
+                        <label class="block text-[10px] text-gray-400 mb-1">Brand</label>
+                        <input type="text" id="verify-brand" class="w-full bg-gray-900 border border-gray-800 rounded px-2.5 py-1.5 text-xs text-white">
                     </div>
                     <div>
                         <label class="block text-[10px] text-gray-400 mb-1">Release Year</label>
-                        <input type="number" id="verify-year" placeholder="e.g. 1992" class="w-full bg-gray-900 border border-gray-800 rounded px-2.5 py-1.5 text-xs text-white text-center font-mono">
+                        <input type="number" id="verify-year" class="w-full bg-gray-900 border border-gray-800 rounded px-2.5 py-1.5 text-xs text-white text-center font-mono">
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-[10px] text-gray-400 mb-1">Trading Card Set Name</label>
-                    <input type="text" id="verify-set-name" placeholder="e.g. Marvel Masterpieces" class="w-full bg-gray-900 border border-gray-800 rounded px-2.5 py-1.5 text-xs text-white">
+                    <label class="block text-[10px] text-gray-400 mb-1">Set Name</label>
+                    <input type="text" id="verify-set-name" class="w-full bg-gray-900 border border-gray-800 rounded px-2.5 py-1.5 text-xs text-white">
                 </div>
 
                 <div>
@@ -183,140 +151,77 @@
                     <select id="verify-parallel" class="w-full bg-gray-900 border border-gray-800 rounded px-2.5 py-1.5 text-xs text-white font-bold">
                         <option value="Base Standard">Base Standard</option>
                         <option value="Variant Cover">Variant Cover</option>
+                        <option value="Hologram">Hologram</option>
+                        <option value="Gold Foil">Gold Foil</option>
                         <option value="Rainbow">Rainbow</option>
-                        <option value="Blue Traxx">Blue Traxx</option>
-                        <option value="Pink Laser">Pink Laser</option>
-                        <option value="Purple Crystals">Purple Crystals</option>
-                        <option value="Seismic Gold (#/92)">Seismic Gold (#/92)</option>
-                        <option value="Orange Lava (#/25)">Orange Lava (#/25)</option>
-                        <option value="Emerald Surge (#/10)">Emerald Surge (#/10)</option>
-                        <option value="Golden Treasures (1/1)">Golden Treasures (1/1)</option>
-                        <option value="Printing Plates (1/1)">Printing Plates (1/1)</option>
-                        <option value="Canvas">Canvas</option>
-                        <option value="Clear Cut (Plexi)">Clear Cut (Plexi)</option>
-                        <option value="Leather">Leather</option>
-                        <option value="Lenticular">Lenticular</option>
-                        <option value="Wood">Wood</option>
-                        <option value="Metallurgy">Metallurgy</option>
-                        <option value="PMG Red (#/100)">PMG Red (#/100)</option>
-                        <option value="PMG Blue (#/50)">PMG Blue (#/50)</option>
-                        <option value="PMG Green (#/10)">PMG Green (#/10)</option>
-                        <option value="PMG Gold (1/1)">PMG Gold (1/1)</option>
                     </select>
                 </div>
 
                 <div class="grid grid-cols-2 gap-2">
                     <div>
-                        <label class="block text-[10px] text-gray-400 mb-1">Serial Stamp (e.g. 05/92)</label>
-                        <input type="text" id="verify-serial" class="w-full bg-gray-900 border border-gray-800 rounded px-2.5 py-1.5 text-xs text-white font-mono text-center">
+                        <label class="block text-[10px] text-gray-400 mb-1">Serial Number</label>
+                        <input type="text" id="verify-serial" class="w-full bg-gray-900 border border-gray-800 rounded px-2.5 py-1.5 text-xs text-white text-center font-mono">
                     </div>
                     <div>
-                        <label class="block text-[10px] text-gray-400 mb-1">Grade</label>
-                        <select id="verify-grade" class="w-full bg-gray-900 border border-gray-800 rounded px-2.5 py-1.5 text-xs text-white text-center">
-                            <option value="Raw">Raw</option>
-                            <option value="PSA 10">PSA 10</option>
-                            <option value="PSA 9">PSA 9</option>
-                            <option value="BGS 9.5">BGS 9.5</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-2">
-                    <div>
-                        <label class="block text-[10px] text-gray-400 mb-1">Purchase Cost ($)</label>
-                        <input type="number" id="verify-cost" step="0.01" value="0.00" class="w-full bg-gray-900 border border-gray-800 rounded px-2.5 py-1.5 text-xs text-emerald-400 font-bold text-center">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] text-gray-400 mb-1">Est. Value ($)</label>
-                        <input type="number" id="verify-value" step="0.01" value="0.00" class="w-full bg-gray-900 border border-gray-800 rounded px-2.5 py-1.5 text-xs text-cyan-400 font-bold text-center">
+                        <label class="block text-[10px] text-gray-400 mb-1">Estimated Grade</label>
+                        <input type="text" id="verify-grade" class="w-full bg-gray-900 border border-gray-800 rounded px-2.5 py-1.5 text-xs text-cyan-400 font-bold text-center">
                     </div>
                 </div>
             </div>
 
             <div class="flex flex-col gap-2 pt-2">
-                <button onclick="commitVerifiedData()" class="w-full py-2.5 bg-cyan-400 text-black font-extrabold rounded-xl text-xs tracking-wider uppercase hover:bg-cyan-300 transition shadow-lg">
-                    Confirm & Log to Sheet
+                <button onclick="commitVerifiedCardToLedger()" class="w-full py-2.5 bg-cyan-400 text-black font-extrabold rounded-xl text-xs tracking-wider uppercase hover:bg-cyan-300 transition shadow-lg">
+                    Approve & Log Row
                 </button>
-                <button onclick="resetScanStates(); dismissVerificationModal();" class="w-full py-2 bg-gray-900 border border-gray-800 text-gray-400 rounded-xl text-xs hover:bg-gray-850 transition">
-                    Discard & Cancel Scan
-                </button>
-            </div>
-        </div>
-    </section>
-
-    <section id="success-modal" class="hidden absolute inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-6">
-        <div class="w-full max-w-sm holo-card rounded-2xl p-6 flex flex-col items-center text-center shadow-2xl">
-            
-            <div class="w-12 h-12 bg-emerald-500/10 border border-emerald-500/30 rounded-full flex items-center justify-center text-emerald-400 text-xl font-bold mb-3">
-                ✓
-            </div>
-
-            <span class="text-[10px] uppercase tracking-[0.2em] text-emerald-400 font-bold">Successfully Stamped!</span>
-            <h2 class="text-lg font-bold text-white mt-1">Vault Database Updated</h2>
-            
-            <div class="w-full bg-slate-950/80 border border-slate-900 rounded-xl p-4 my-5 text-left relative overflow-hidden">
-                <div class="absolute top-0 right-0 px-2 py-0.5 bg-cyan-500/10 border-b border-l border-cyan-500/30 text-[9px] font-mono text-cyan-400 uppercase font-bold" id="rec-type">
-                    Vault Ledger Entry
-                </div>
-                
-                <div class="flex items-center gap-4">
-                    <div class="w-14 h-14 bg-cyan-950/40 border border-cyan-500/30 rounded-lg flex items-center justify-center font-display font-black text-2xl text-cyan-400 shadow-inner" id="rec-num">
-                        #46
-                    </div>
-                    <div>
-                        <h3 class="text-sm font-bold text-white leading-tight" id="rec-character">Jean Grey</h3>
-                        <p class="text-xs text-gray-400 mt-1">Parallel: <span class="text-cyan-400 font-bold" id="rec-parallel">PMG Blue</span></p>
-                        <p class="text-xs text-gray-400 mt-0.5">Serial: <span class="text-gray-300 font-mono" id="rec-serial">12/50</span></p>
-                    </div>
-                </div>
-                <div class="mt-3 pt-3 border-t border-gray-900 flex justify-between items-center text-[10px] text-gray-500 font-mono">
-                    <span>Server Time:</span>
-                    <span id="rec-timestamp" class="text-gray-400">Loading...</span>
-                </div>
-            </div>
-
-            <p class="text-xs text-gray-400 max-w-xs mb-5" id="rec-action">
-                Entry verified and processed.
-            </p>
-
-            <div class="w-full flex flex-col gap-2">
-                <button onclick="dismissSuccessModal(); resetScanStates();" class="w-full py-2.5 bg-cyan-400 text-black font-extrabold rounded-xl text-xs tracking-wider uppercase hover:bg-cyan-300 transition">
-                    Scan Another Card
+                <button onclick="bypassCurrentCardInBatch()" class="w-full py-2 bg-gray-900 border border-gray-800 text-gray-400 rounded-xl text-xs hover:bg-gray-850 transition">
+                    Skip This Card
                 </button>
             </div>
         </div>
     </section>
 
     <script>
-        let stream = null;
-        let currentStep = "front"; 
-        let imageFrontBase64 = null;
-        let imageBackBase64 = null;
+        let db;
+        const DB_NAME = "VaultBatchScannerDB";
+        const STORE_NAME = "batchQueue";
+        
+        let currentStep = "front";
+        let tempFrontBase64 = null;
         let config = { sheetsUrl: "", geminiKey: "" };
-        let activeCardData = null;
+        let currentBatchCursor = null;
 
         window.onload = function() {
-            loadConfig();
-            initWebcam();
+            loadConfigurationMatrix();
+            initializeIndexedDB();
+            startWebcamView();
         };
 
-        function loadConfig() {
+        // Initialize Browser High-Capacity IndexedDB
+        function initializeIndexedDB() {
+            const request = indexedDB.open(DB_NAME, 1);
+            request.onupgradeneeded = function(e) {
+                db = e.target.result;
+                db.createObjectStore(STORE_NAME, { keyPath: "id", autoIncrement: true });
+            };
+            request.onsuccess = function(e) {
+                db = e.target.result;
+                refreshBatchCountDisplay();
+            };
+        }
+
+        function loadConfigurationMatrix() {
             const saved = localStorage.getItem('marvel_scanner_config');
             if (saved) {
                 config = JSON.parse(saved);
                 document.getElementById('sheets-url').value = config.sheetsUrl || "";
                 document.getElementById('gemini-key').value = config.geminiKey || "";
-                if (config.sheetsUrl) {
-                    document.getElementById('quick-sheet-btn').classList.remove('hidden');
-                }
             } else {
                 toggleConfig();
             }
         }
 
         function toggleConfig() {
-            const panel = document.getElementById('config-panel');
-            panel.classList.toggle('hidden');
+            document.getElementById('config-panel').classList.toggle('hidden');
         }
 
         function saveConfiguration() {
@@ -324,73 +229,50 @@
             config.geminiKey = document.getElementById('gemini-key').value.trim();
             localStorage.setItem('marvel_scanner_config', JSON.stringify(config));
             toggleConfig();
-            if (config.sheetsUrl) {
-                document.getElementById('quick-sheet-btn').classList.remove('hidden');
-            }
-            alert("App parameters updated successfully!");
+            alert("System access parameters verified and locked!");
         }
 
-        function openLiveSheet() {
-            if (config.sheetsUrl) {
-                window.open(config.sheetsUrl, '_blank');
-            } else {
-                alert("Please save your Google Sheets Web App URL first.");
-            }
-        }
-
-        async function initWebcam() {
+        async function startWebcamView() {
             const video = document.getElementById('webcam-preview');
-            const constraints = {
-                video: { facingMode: { exact: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
-                audio: false
-            };
             try {
-                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: { exact: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
+                    audio: false
+                });
                 video.srcObject = stream;
             } catch (err) {
-                console.warn("Environmental camera failed. Accessing standard fallback:", err);
                 try {
-                    stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-                    video.srcObject = stream;
+                    const fallback = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                    video.srcObject = fallback;
                 } catch (e) {
-                    alert("Camera Permission Error. Check device configurations.");
+                    alert("Optic hardware link faulted. Verify device camera configuration allowances.");
                 }
             }
         }
 
         function triggerFlash() {
-            if (navigator.vibrate) navigator.vibrate(80);
+            if (navigator.vibrate) navigator.vibrate(60);
             const flashEl = document.getElementById('flash-effect');
             flashEl.classList.add('flash-active');
-            setTimeout(() => { flashEl.classList.remove('flash-active'); }, 300);
+            setTimeout(() => { flashEl.classList.remove('flash-active'); }, 250);
         }
 
-        async function captureAndScanCard() {
-            if (!config.sheetsUrl) {
-                alert("Setup Required: Input Web App URL in config first.");
-                toggleConfig();
-                return;
-            }
-
+        // --- RAPID CAPTURE & STAGING QUEUE MATRIX ---
+        async function captureAndQueueCardFace() {
             const video = document.getElementById('webcam-preview');
             const canvas = document.getElementById('photo-canvas');
             const ctx = canvas.getContext('2d');
-            const statusDiv = document.getElementById('status-indicator');
-            const statusHeadline = document.getElementById('status-headline');
-            const statusSubline = document.getElementById('status-subline');
-            const snapBtn = document.getElementById('snap-btn');
+            
             const snapBtnInner = document.getElementById('snap-btn-inner');
             const snapBtnLabel = document.getElementById('snap-btn-label');
             const hudInstructions = document.getElementById('hud-instructions');
             const hudDetails = document.getElementById('hud-details');
             const abortBtn = document.getElementById('abort-btn');
 
-            // HIGH PERFORMANCE CLIENT-SIDE DOWNSCALER MATRIX:
-            // Prevents network buffer timeouts and keeps payload sizes under Google's execution boundaries.
+            // Downscale dimensions to compress network size overhead
             const maxDimension = 1024;
             let targetWidth = video.videoWidth || 1280;
             let targetHeight = video.videoHeight || 720;
-
             if (targetWidth > targetHeight && targetWidth > maxDimension) {
                 targetHeight = Math.round((targetHeight * maxDimension) / targetWidth);
                 targetWidth = maxDimension;
@@ -402,35 +284,72 @@
             canvas.width = targetWidth;
             canvas.height = targetHeight;
             ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
-            
             const base64Data = canvas.toDataURL('image/jpeg', 0.82).split(',')[1];
             triggerFlash();
 
             if (currentStep === "front") {
-                imageFrontBase64 = base64Data;
+                tempFrontBase64 = base64Data;
                 currentStep = "back";
-                hudInstructions.textContent = "STEP 2: ALIGN CARD BACK";
-                hudInstructions.className = "text-[10px] bg-black/85 border border-purple-900/60 rounded p-1.5 text-center text-purple-400 w-full select-none";
-                hudDetails.textContent = "Flip card over to capture the serial number and text details.";
+                
+                hudInstructions.textContent = "STEP 2: SNAP CARD BACK";
+                hudInstructions.className = "text-[10px] bg-black/85 border border-purple-900/60 rounded p-1.5 text-center text-purple-400 w-full select-none font-bold";
+                hudDetails.textContent = "Flip the card cleanly to scan serialization and legal print markers.";
                 snapBtnInner.className = "w-10 h-10 rounded-full bg-purple-500";
                 snapBtnLabel.textContent = "SNAP BACK";
                 snapBtnLabel.className = "text-xs text-purple-400 font-bold uppercase tracking-widest select-none";
                 abortBtn.classList.remove('hidden');
-                
-                statusHeadline.textContent = "Front Captured!";
-                statusSubline.textContent = "Flip card and scan the back side.";
-                statusDiv.classList.remove('hidden');
-                setTimeout(() => { statusDiv.classList.add('hidden'); }, 2000);
                 return;
             }
 
-            imageBackBase64 = base64Data;
-            statusHeadline.textContent = "Processing Raw Scans...";
-            statusSubline.textContent = "Compressing textures & piping data directly to Gemini AI...";
+            // If step is back, store complete dual-face package to Local Batch DB immediately
+            const newRecord = {
+                frontImage: tempFrontBase64,
+                backImage: base64Data,
+                timestamp: new Date().toISOString()
+            };
+
+            const transaction = db.transaction([STORE_NAME], "readwrite");
+            transaction.objectStore(STORE_NAME).add(newRecord);
+            transaction.oncomplete = function() {
+                refreshBatchCountDisplay();
+                resetScanStates();
+            };
+        }
+
+        function refreshBatchCountDisplay() {
+            if (!db) return;
+            const store = db.transaction([STORE_NAME], "readonly").objectStore(STORE_NAME);
+            const countReq = store.count();
+            countReq.onsuccess = function() {
+                const total = countReq.result;
+                const banner = document.getElementById('batch-banner');
+                document.getElementById('queue-count').textContent = total;
+                banner.style.display = total > 0 ? 'flex' : 'none';
+            };
+        }
+
+        // --- BATCH SERVER UPLOAD PROCESSING ARRAY ---
+        function processEntireBatchQueue() {
+            if (!config.sheetsUrl) return alert("Verify core Web App target URL coordinates first.");
+            
+            const store = db.transaction([STORE_NAME], "readonly").objectStore(STORE_NAME);
+            store.openCursor().onsuccess = function(e) {
+                currentBatchCursor = e.target.result;
+                if (currentBatchCursor) {
+                    sendIndividualRecordToAI(currentBatchCursor.value);
+                } else {
+                    document.getElementById('status-indicator').classList.add('hidden');
+                    alert("🎉 Entire batch successfully processed, validated, and logged to the master vault spreadsheet!");
+                    refreshBatchCountDisplay();
+                }
+            };
+        }
+
+        async function sendIndividualRecordToAI(record) {
+            const statusDiv = document.getElementById('status-indicator');
+            document.getElementById('status-headline').textContent = "Piping Queue to AI...";
+            document.getElementById('status-subline').textContent = "Gemini processing image elements...";
             statusDiv.classList.remove('hidden');
-            snapBtn.disabled = true;
-            snapBtn.classList.add('opacity-40');
-            abortBtn.classList.add('hidden');
 
             try {
                 const response = await fetch(config.sheetsUrl, {
@@ -439,124 +358,97 @@
                     headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: "analyze",
-                        imageFront: imageFrontBase64,
-                        imageBack: imageBackBase64,
+                        imageFront: record.frontImage,
+                        imageBack: record.backImage,
                         apiKey: config.geminiKey
                     })
                 });
 
                 const result = await response.json();
-                if (!result.success) throw new Error(result.error || "Analysis engine failed.");
+                if (!result.success) throw new Error(result.error);
 
-                activeCardData = result.card;
-                document.getElementById('verify-card-number').value = activeCardData.cardNumber;
-                document.getElementById('verify-character').value = activeCardData.character;
-                document.getElementById('verify-brand').value = activeCardData.brand || "SkyBox / Upper Deck";
-                document.getElementById('verify-year').value = activeCardData.year || "1992";
-                document.getElementById('verify-set-name').value = activeCardData.setName || "Marvel Masterpieces";
-                document.getElementById('verify-parallel').value = activeCardData.parallel;
-                document.getElementById('verify-serial').value = activeCardData.serial || "—";
-                document.getElementById('verify-grade').value = "Raw";
-                document.getElementById('verify-cost').value = "0.00";
-                document.getElementById('verify-value').value = "0.00";
+                // Populate validation check values
+                document.getElementById('verify-card-number').value = result.card.cardNumber;
+                document.getElementById('verify-character').value = result.card.character;
+                document.getElementById('verify-brand').value = result.card.brand || "SkyBox";
+                document.getElementById('verify-year').value = result.card.year || "1992";
+                document.getElementById('verify-set-name').value = result.card.setName || "Marvel Masterpieces";
+                document.getElementById('verify-parallel').value = result.card.parallel;
+                document.getElementById('verify-serial').value = result.card.serial || "—";
+                document.getElementById('verify-grade').value = result.card.estimatedGrade || "Raw";
 
                 statusDiv.classList.add('hidden');
                 document.getElementById('verification-modal').classList.remove('hidden');
 
             } catch (err) {
-                alert("Scan Resolution Failed: " + err.message);
                 statusDiv.classList.add('hidden');
-                resetScanStates();
+                const proceed = confirm("⚠️ Scan failed to parse. Skip and continue remainder of batch?\nReason: " + err.message);
+                if (proceed) { bypassCurrentCardInBatch(); }
             }
         }
 
-        async function commitVerifiedData() {
-            const num = parseInt(document.getElementById('verify-card-number').value);
-            const char = document.getElementById('verify-character').value.trim();
-            const brand = document.getElementById('verify-brand').value.trim();
-            const year = parseInt(document.getElementById('verify-year').value) || 1992;
-            const setName = document.getElementById('verify-set-name').value.trim();
-            const para = document.getElementById('verify-parallel').value;
-            const serial = document.getElementById('verify-serial').value.trim();
-            const grade = document.getElementById('verify-grade').value;
-            const cost = parseFloat(document.getElementById('verify-cost').value) || 0;
-            const value = parseFloat(document.getElementById('verify-value').value) || 0;
-
-            if (isNaN(num) || num < 1 || num > 100) {
-                alert("Please verify Card # is a valid number between 1 and 100.");
-                return;
-            }
-            if (!char) {
-                alert("Character name cannot be blank.");
-                return;
-            }
+        async function commitVerifiedCardToLedger() {
+            document.getElementById('verification-modal').classList.add('hidden');
+            
+            const statusDiv = document.getElementById('status-indicator');
+            document.getElementById('status-headline').textContent = "Writing to Database...";
+            document.getElementById('status-subline').textContent = "Stamping verified row index coordinates...";
+            statusDiv.classList.remove('hidden');
 
             const verifiedData = {
-                cardNumber: num,
-                character: char,
-                brand: brand,
-                year: year,
-                setName: setName,
-                parallel: para,
-                serial: serial,
-                grade: grade,
-                cost: cost,
-                value: value
+                cardNumber: parseInt(document.getElementById('verify-card-number').value),
+                character: document.getElementById('verify-character').value.trim(),
+                brand: document.getElementById('verify-brand').value.trim(),
+                year: parseInt(document.getElementById('verify-year').value),
+                setName: document.getElementById('verify-set-name').value.trim(),
+                parallel: document.getElementById('verify-parallel').value,
+                serial: document.getElementById('verify-serial').value.trim(),
+                grade: document.getElementById('verify-grade').value,
+                cost: 0.00,
+                value: 0.00
             };
-
-            const statusHeadline = document.getElementById('status-headline');
-            const statusSubline = document.getElementById('status-subline');
-            const statusDiv = document.getElementById('status-indicator');
-
-            document.getElementById('verification-modal').classList.add('hidden');
-            statusHeadline.textContent = "Writing to Database...";
-            statusSubline.textContent = "Stamping precise transactional ledger timestamp...";
-            statusDiv.classList.remove('hidden');
 
             try {
                 const response = await fetch(config.sheetsUrl, {
                     method: 'POST',
                     mode: 'cors',
                     headers: { 'Content-Type': 'text/plain' },
-                    body: JSON.stringify({
-                        action: "commit",
-                        cardData: verifiedData
-                    })
+                    body: JSON.stringify({ action: "commit", cardData: verifiedData })
                 });
+                const res = await response.json();
+                if (!res.success) throw new Error(res.error);
 
-                const result = await response.json();
-                if (!result.success) throw new Error(result.error || "Failed database handshake.");
-
-                if (navigator.vibrate) navigator.vibrate([100, 50, 150]);
-                statusDiv.classList.add('hidden');
-
-                document.getElementById('rec-num').textContent = `#${verifiedData.cardNumber}`;
-                document.getElementById('rec-character').textContent = verifiedData.character;
-                document.getElementById('rec-parallel').textContent = verifiedData.parallel;
-                document.getElementById('rec-serial').textContent = verifiedData.serial || '—';
-                document.getElementById('rec-timestamp').textContent = result.timestamp;
-                document.getElementById('rec-action').textContent = result.database;
-
-                const typeHeader = document.getElementById('rec-type');
-                if (verifiedData.parallel === "Base Standard") {
-                    typeHeader.textContent = "Base Checklist";
-                    typeHeader.className = "absolute top-0 right-0 px-2 py-0.5 bg-emerald-500/10 border-b border-l border-emerald-500/30 text-[9px] font-mono text-emerald-400 uppercase font-bold";
-                } else {
-                    typeHeader.textContent = "Parallel Locked";
-                    typeHeader.className = "absolute top-0 right-0 px-2 py-0.5 bg-cyan-500/10 border-b border-l border-cyan-500/30 text-[9px] font-mono text-cyan-400 uppercase font-bold";
-                }
-
-                document.getElementById('success-modal').classList.remove('hidden');
-
+                // Remove successfully written item from database staging row
+                const delTx = db.transaction([STORE_NAME], "readwrite");
+                delTx.objectStore(STORE_NAME).delete(currentBatchCursor.key);
+                delTx.oncomplete = function() {
+                    statusDiv.classList.add('hidden');
+                    processEntireBatchQueue(); // Iterate down line
+                };
             } catch (err) {
-                alert("Database Commit Error: " + err.message);
+                alert("Database insertion fault: " + err.message);
                 statusDiv.classList.add('hidden');
                 document.getElementById('verification-modal').classList.remove('hidden');
             }
         }
 
+        function bypassCurrentCardInBatch() {
+            document.getElementById('verification-modal').classList.add('hidden');
+            // Advanced loop step cursor manually without deletion
+            const store = db.transaction([STORE_NAME], "readonly").objectStore(STORE_NAME);
+            const req = store.openCursor(IDBKeyRange.lowerBound(currentBatchCursor.key, true));
+            req.onsuccess = function(e) {
+                currentBatchCursor = e.target.result;
+                if (currentBatchCursor) {
+                    sendIndividualRecordToAI(currentBatchCursor.value);
+                } else {
+                    alert("Queue complete.");
+                    refreshBatchCountDisplay();
+                }
+            };
+        }
+
         function resetScanStates() {
-            const snapBtn = document.getElementById('snap-btn');
             const snapBtnInner = document.getElementById('snap-btn-inner');
             const snapBtnLabel = document.getElementById('snap-btn-label');
             const hudInstructions = document.getElementById('hud-instructions');
@@ -564,29 +456,14 @@
             const abortBtn = document.getElementById('abort-btn');
 
             currentStep = "front";
-            imageFrontBase64 = null;
-            imageBackBase64 = null;
-            activeCardData = null;
+            tempFrontBase64 = null;
 
-            hudInstructions.textContent = "STEP 1: ALIGN CARD FRONT";
-            hudInstructions.className = "text-[10px] bg-black/85 border border-cyan-900/60 rounded p-1.5 text-center text-cyan-400 w-full select-none";
+            hudInstructions.textContent = "STEP 1: SNAP CARD FRONT";
+            hudInstructions.className = "text-[10px] bg-black/85 border border-cyan-900/60 rounded p-1.5 text-center text-cyan-400 w-full select-none font-bold";
             hudDetails.textContent = "Snap the front illustration side first.";
-
             snapBtnInner.className = "w-10 h-10 rounded-full bg-cyan-400";
             snapBtnLabel.textContent = "SNAP FRONT";
-            snapBtnLabel.className = "text-xs text-cyan-400 font-bold uppercase tracking-widest select-none";
-
-            snapBtn.disabled = false;
-            snapBtn.classList.remove('opacity-40');
-            abortBtn.classList.add('hidden');
-        }
-
-        function dismissVerificationModal() {
-            document.getElementById('verification-modal').classList.add('hidden');
-        }
-
-        function dismissSuccessModal() {
-            document.getElementById('success-modal').classList.add('hidden');
+            abortBtn.className = "hidden";
         }
     </script>
 </body>
