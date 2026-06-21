@@ -3,15 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     
-    <title>Marvel '92 - AI Card Scanner Portal</title>
+    <title>CardVault - AI Multiverse Portal</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
-
+    
     <style>
         body { background-color: #0A0A0D; font-family: 'Inter', sans-serif; }
         .hud-scan-box { box-shadow: 0 0 0 9999px rgba(10, 10, 13, 0.75); }
@@ -32,22 +33,21 @@
 
     <div id="flash-effect" class="absolute inset-0 pointer-events-none z-50"></div>
 
-<header class="border-b border-gray-900 bg-gray-950/90 backdrop-blur px-4 py-3 shrink-0 flex items-center justify-between z-30">
-    <div>
-        <span class="text-[9px] uppercase tracking-[0.25em] text-cyan-400 font-bold block">Mobile Companion</span>
-        <h1 class="text-lg font-display font-bold text-white tracking-wider">MARVEL '92 AI SCANNER</h1>
-    </div>
-    <div class="flex items-center gap-2">
-        <select id="active-set-select" class="bg-gray-950 border border-cyan-500/30 text-cyan-400 text-xs font-bold rounded px-2 py-1.5 focus:outline-none focus:border-cyan-400">
-            <option value="1992 Marvel Masterpieces">🌌 '92 Masterpieces</option>
-            <option value="2024 Upper Deck Skybox Marvel Masterpieces">⚡ '24 Masterpieces</option>
-            <option value="Topps Marvel Legends">🛡️ Marvel Legends</option>
-        </select>
-        <button onclick="toggleConfig()" class="text-xs px-3 py-1.5 bg-gray-900 border border-gray-800 rounded-lg hover:bg-gray-800 transition">
-            ⚙️
-        </button>
-    </div>
-</header>
+    <header class="border-b border-gray-900 bg-gray-950/90 backdrop-blur px-4 py-3 shrink-0 flex items-center justify-between z-30">
+        <div>
+            <span class="text-[9px] uppercase tracking-[0.25em] text-cyan-400 font-bold block">Mobile Companion</span>
+            <h1 class="text-lg font-display font-bold text-white tracking-wider">CARDVAULT AI</h1>
+        </div>
+        
+        <div class="flex items-center gap-2">
+            <select id="active-set-select" class="bg-gray-950 border border-cyan-500/30 text-cyan-400 text-xs font-bold rounded px-2 py-1.5 focus:outline-none focus:border-cyan-400 max-w-[140px]">
+                <option value="">Syncing Sets...</option>
+            </select>
+            <button onclick="toggleConfig()" class="text-xs px-2.5 py-1.5 bg-gray-900 border border-gray-800 rounded-lg hover:bg-gray-800 transition">
+                ⚙️
+            </button>
+        </div>
+    </header>
 
     <div id="batch-banner" class="bg-cyan-950/80 border-b border-cyan-500/30 px-4 py-2.5 flex items-center justify-between z-20 hidden">
         <div class="flex items-center gap-2">
@@ -157,13 +157,7 @@
 
                 <div>
                     <label class="block text-[10px] text-gray-400 mb-1">Parallel / Treatment Tier</label>
-                    <select id="verify-parallel" class="w-full bg-gray-900 border border-gray-800 rounded px-2.5 py-1.5 text-xs text-white font-bold">
-                        <option value="Base Standard">Base Standard</option>
-                        <option value="Variant Cover">Variant Cover</option>
-                        <option value="Hologram">Hologram</option>
-                        <option value="Gold Foil">Gold Foil</option>
-                        <option value="Rainbow">Rainbow</option>
-                    </select>
+                    <input type="text" id="verify-parallel" class="w-full bg-gray-900 border border-gray-800 rounded px-2.5 py-1.5 text-xs text-white font-bold">
                 </div>
 
                 <div class="grid grid-cols-2 gap-2">
@@ -174,6 +168,17 @@
                     <div>
                         <label class="block text-[10px] text-gray-400 mb-1">Estimated Grade</label>
                         <input type="text" id="verify-grade" class="w-full bg-gray-900 border border-gray-800 rounded px-2.5 py-1.5 text-xs text-cyan-400 font-bold text-center">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-[10px] text-gray-400 mb-1">Cost Paid ($)</label>
+                        <input type="number" step="0.01" id="verify-cost" placeholder="0.00" class="w-full bg-gray-900 border border-gray-800 rounded px-2.5 py-1.5 text-xs text-white text-center font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-gray-400 mb-1">Est Market Value ($)</label>
+                        <input type="number" step="0.01" id="verify-value" placeholder="0.00" class="w-full bg-gray-900 border border-gray-800 rounded px-2.5 py-1.5 text-xs text-green-400 text-center font-mono">
                     </div>
                 </div>
             </div>
@@ -203,9 +208,9 @@
             loadConfigurationMatrix();
             initializeIndexedDB();
             startWebcamView();
+            hydrateMultiverseDropdown();
         };
 
-        // Initialize Browser High-Capacity IndexedDB
         function initializeIndexedDB() {
             const request = indexedDB.open(DB_NAME, 1);
             request.onupgradeneeded = function(e) {
@@ -238,6 +243,7 @@
             config.geminiKey = document.getElementById('gemini-key').value.trim();
             localStorage.setItem('marvel_scanner_config', JSON.stringify(config));
             toggleConfig();
+            hydrateMultiverseDropdown(); // Re-trigger dropdown build on manual save
             alert("System access parameters verified and locked!");
         }
 
@@ -254,8 +260,37 @@
                     const fallback = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
                     video.srcObject = fallback;
                 } catch (e) {
-                    alert("Optic hardware link faulted. Verify device camera configuration allowances.");
+                    console.error("Camera acquisition failed completely: ", e);
                 }
+            }
+        }
+
+        // Dynamically populates the active cataloging choice from the Set_Registry tab
+        async function hydrateMultiverseDropdown() {
+            if (!config.sheetsUrl) return;
+
+            try {
+                const response = await fetch(config.sheetsUrl, {
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({ action: "getAvailableSets" })
+                });
+                const result = await response.json();
+                
+                if (result.success && Array.isArray(result.sets)) {
+                    const selectEl = document.getElementById('active-set-select');
+                    selectEl.innerHTML = ''; 
+                    
+                    result.sets.forEach(setName => {
+                        const option = document.createElement('option');
+                        option.value = setName;
+                        option.textContent = setName;
+                        selectEl.appendChild(option);
+                    });
+                }
+            } catch (err) {
+                console.error("Failed to hydrate multiverse drop-down panel: ", err);
             }
         }
 
@@ -266,7 +301,6 @@
             setTimeout(() => { flashEl.classList.remove('flash-active'); }, 250);
         }
 
-        // --- RAPID CAPTURE & STAGING QUEUE MATRIX ---
         async function captureAndQueueCardFace() {
             const video = document.getElementById('webcam-preview');
             const canvas = document.getElementById('photo-canvas');
@@ -278,7 +312,6 @@
             const hudDetails = document.getElementById('hud-details');
             const abortBtn = document.getElementById('abort-btn');
 
-            // Downscale dimensions to compress network size overhead
             const maxDimension = 1024;
             let targetWidth = video.videoWidth || 1280;
             let targetHeight = video.videoHeight || 720;
@@ -310,7 +343,6 @@
                 return;
             }
 
-            // If step is back, store complete dual-face package to Local Batch DB immediately
             const newRecord = {
                 frontImage: tempFrontBase64,
                 backImage: base64Data,
@@ -337,7 +369,6 @@
             };
         }
 
-        // --- BATCH SERVER UPLOAD PROCESSING ARRAY ---
         function processEntireBatchQueue() {
             if (!config.sheetsUrl) return alert("Verify core Web App target URL coordinates first.");
             
@@ -362,31 +393,31 @@
 
             try {
                 const response = await fetch(config.sheetsUrl, {
-    method: 'POST',
-    mode: 'cors',
-    headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify({
-        action: "analyze",
-        activeSet: document.getElementById('active-set-select').value, // Injects your active set selection!
-        imageFront: record.frontImage,
-        imageBack: record.backImage,
-        apiKey: config.geminiKey
-    })
-});
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: "analyze",
+                        activeSet: document.getElementById('active-set-select').value,
+                        imageFront: record.frontImage,
+                        imageBack: record.backImage,
+                        apiKey: config.geminiKey
+                    })
                 });
 
                 const result = await response.json();
                 if (!result.success) throw new Error(result.error);
 
-                // Populate validation check values
                 document.getElementById('verify-card-number').value = result.card.cardNumber;
                 document.getElementById('verify-character').value = result.card.character;
-                document.getElementById('verify-brand').value = result.card.brand || "SkyBox";
-                document.getElementById('verify-year').value = result.card.year || "1992";
-                document.getElementById('verify-set-name').value = result.card.setName || "Marvel Masterpieces";
+                document.getElementById('verify-brand').value = result.card.brand || "";
+                document.getElementById('verify-year').value = result.card.year || "";
+                document.getElementById('verify-set-name').value = result.card.setName || "";
                 document.getElementById('verify-parallel').value = result.card.parallel;
                 document.getElementById('verify-serial').value = result.card.serial || "—";
                 document.getElementById('verify-grade').value = result.card.estimatedGrade || "Raw";
+                document.getElementById('verify-cost').value = "";
+                document.getElementById('verify-value').value = "";
 
                 statusDiv.classList.add('hidden');
                 document.getElementById('verification-modal').classList.remove('hidden');
@@ -412,7 +443,7 @@
                 brand: document.getElementById('verify-brand').value.trim(),
                 year: parseInt(document.getElementById('verify-year').value),
                 setName: document.getElementById('verify-set-name').value.trim(),
-                parallel: document.getElementById('verify-parallel').value,
+                parallel: document.getElementById('verify-parallel').value.trim(),
                 serial: document.getElementById('verify-serial').value.trim(),
                 grade: document.getElementById('verify-grade').value,
                 cost: parseFloat(document.getElementById('verify-cost').value) || 0.00,
@@ -429,12 +460,11 @@
                 const res = await response.json();
                 if (!res.success) throw new Error(res.error);
 
-                // Remove successfully written item from database staging row
                 const delTx = db.transaction([STORE_NAME], "readwrite");
                 delTx.objectStore(STORE_NAME).delete(currentBatchCursor.key);
                 delTx.oncomplete = function() {
                     statusDiv.classList.add('hidden');
-                    processEntireBatchQueue(); // Iterate down line
+                    processEntireBatchQueue(); 
                 };
             } catch (err) {
                 alert("Database insertion fault: " + err.message);
@@ -445,7 +475,6 @@
 
         function bypassCurrentCardInBatch() {
             document.getElementById('verification-modal').classList.add('hidden');
-            // Advanced loop step cursor manually without deletion
             const store = db.transaction([STORE_NAME], "readonly").objectStore(STORE_NAME);
             const req = store.openCursor(IDBKeyRange.lowerBound(currentBatchCursor.key, true));
             req.onsuccess = function(e) {
