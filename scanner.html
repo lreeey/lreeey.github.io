@@ -52,7 +52,14 @@
             </button>
         </div>
     </header>
-
+    
+<div id="sync-banner" style="display: none; background: #FFB300; color: #111; padding: 12px; font-weight: 700; text-align: center; border-radius: 10px; margin: 10px;">
+  ⚠️ Offline Mode Active (<span id="offline-count">0</span> Cards Cached)
+  <button id="sync-now-btn" onclick="syncOfflineQueue()" style="margin-left: 10px; background: #111; color: #fff; border: none; padding: 4px 10px; border-radius: 5px; cursor: pointer; font-size: 11px; font-weight: 800;">
+    Force Sync Now
+  </button>
+</div>
+    
     <section id="config-panel" class="hidden shrink-0 bg-gray-950 p-4 border-b border-cyan-950/40 z-30 relative">
         <div class="max-w-md mx-auto space-y-3">
             <h3 class="text-xs font-bold text-cyan-400 uppercase tracking-widest">Connect Your System API</h3>
