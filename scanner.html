@@ -156,6 +156,22 @@
                     </div>
                 </div>
 
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-[10px] text-gray-400 mb-1">Brand (Publisher)</label>
+                        <input type="text" id="verify-brand" placeholder="e.g. Upper Deck, Topps" class="w-full bg-gray-900 border border-gray-800 rounded px-2.5 py-1.5 text-xs text-white">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-gray-400 mb-1">Release Year</label>
+                        <input type="number" id="verify-year" placeholder="e.g. 1992" class="w-full bg-gray-900 border border-gray-800 rounded px-2.5 py-1.5 text-xs text-white text-center font-mono">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] text-gray-400 mb-1">Trading Card Set Name</label>
+                    <input type="text" id="verify-set-name" placeholder="e.g. Marvel Masterpieces" class="w-full bg-gray-900 border border-gray-800 rounded px-2.5 py-1.5 text-xs text-white">
+                </div>
+
                 <div>
                     <label class="block text-[10px] text-gray-400 mb-1">Parallel / Treatment Tier</label>
                     <select id="verify-parallel" class="w-full bg-gray-900 border border-gray-800 rounded px-2.5 py-1.5 text-xs text-white font-bold">
@@ -409,10 +425,12 @@
                 const result = await response.json();
                 if (!result.success) throw new Error(result.error || "Analysis engine failed.");
 
-                // Set data parameters to UI fields
                 activeCardData = result.card;
                 document.getElementById('verify-card-number').value = activeCardData.cardNumber;
                 document.getElementById('verify-character').value = activeCardData.character;
+                document.getElementById('verify-brand').value = activeCardData.brand || "SkyBox / Upper Deck";
+                document.getElementById('verify-year').value = activeCardData.year || "1992";
+                document.getElementById('verify-set-name').value = activeCardData.setName || "Marvel Masterpieces";
                 document.getElementById('verify-parallel').value = activeCardData.parallel;
                 document.getElementById('verify-serial').value = activeCardData.serial || "—";
                 document.getElementById('verify-grade').value = "Raw";
@@ -432,6 +450,9 @@
         async function commitVerifiedData() {
             const num = parseInt(document.getElementById('verify-card-number').value);
             const char = document.getElementById('verify-character').value.trim();
+            const brand = document.getElementById('verify-brand').value.trim();
+            const year = parseInt(document.getElementById('verify-year').value) || 1992;
+            const setName = document.getElementById('verify-set-name').value.trim();
             const para = document.getElementById('verify-parallel').value;
             const serial = document.getElementById('verify-serial').value.trim();
             const grade = document.getElementById('verify-grade').value;
@@ -450,6 +471,9 @@
             const verifiedData = {
                 cardNumber: num,
                 character: char,
+                brand: brand,
+                year: year,
+                setName: setName,
                 parallel: para,
                 serial: serial,
                 grade: grade,
