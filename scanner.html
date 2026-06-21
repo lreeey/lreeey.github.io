@@ -362,15 +362,17 @@
 
             try {
                 const response = await fetch(config.sheetsUrl, {
-                    method: 'POST',
-                    mode: 'cors',
-                    headers: { 'Content-Type': 'text/plain' },
-                    body: JSON.stringify({
-                        action: "analyze",
-                        imageFront: record.frontImage,
-                        imageBack: record.backImage,
-                        apiKey: config.geminiKey
-                    })
+    method: 'POST',
+    mode: 'cors',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({
+        action: "analyze",
+        activeSet: document.getElementById('active-set-select').value, // Injects your active set selection!
+        imageFront: record.frontImage,
+        imageBack: record.backImage,
+        apiKey: config.geminiKey
+    })
+});
                 });
 
                 const result = await response.json();
