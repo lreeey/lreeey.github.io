@@ -404,8 +404,8 @@
                 parallel: document.getElementById('verify-parallel').value,
                 serial: document.getElementById('verify-serial').value.trim(),
                 grade: document.getElementById('verify-grade').value,
-                cost: 0.00,
-                value: 0.00
+                cost: parseFloat(document.getElementById('verify-cost').value) || 0.00,
+                value: parseFloat(document.getElementById('verify-value').value) || 0.00
             };
 
             try {
