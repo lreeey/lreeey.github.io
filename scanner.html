@@ -1,819 +1,586 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Marvel '92 Platinum - Collector Vault & Tracker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Marvel '92 - AI Card Scanner Portal</title>
     
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts for premium retro-modern look -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
-    
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        display: ['Oswald', 'sans-serif'],
-                    },
-                    colors: {
-                        cyberTeal: '#00E5FF',
-                        darkBg: '#0D0E12',
-                        panelBg: '#161920',
-                        accentPurp: '#9D4EDD',
-                    }
-                }
-            }
-        }
-    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
     
     <style>
         body {
-            background-color: #0D0E12;
+            background-color: #0A0A0D;
             font-family: 'Inter', sans-serif;
-            color: #E2E8F0;
         }
-        
-        /* Modern Glassmorphism effect */
-        .glass-panel {
-            background: rgba(22, 25, 32, 0.7);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+        .hud-scan-box {
+            box-shadow: 0 0 0 9999px rgba(10, 10, 13, 0.75);
         }
-
         .neon-border {
-            box-shadow: 0 0 15px rgba(0, 229, 255, 0.15);
-            border: 1px solid rgba(0, 229, 255, 0.3);
+            box-shadow: 0 0 15px rgba(0, 229, 255, 0.4);
         }
-
-        /* Custom Scrollbar for matrix lists */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
+        .flash-active {
+            animation: cameraFlash 0.3s ease-out;
         }
-        ::-webkit-scrollbar-track {
-            background: #0D0E12;
+        @keyframes cameraFlash {
+            0% { background-color: rgba(255, 255, 255, 1); }
+            100% { background-color: rgba(255, 255, 255, 0); }
         }
-        ::-webkit-scrollbar-thumb {
-            background: #2D313E;
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #00E5FF;
+        .holo-card {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border: 2px solid rgba(0, 229, 255, 0.3);
+            box-shadow: 0 0 30px rgba(0, 229, 255, 0.2), inset 0 0 15px rgba(0, 229, 255, 0.1);
         }
     </style>
 </head>
-<body class="h-full flex flex-col overflow-hidden">
+<body class="text-gray-100 flex flex-col min-h-screen relative overflow-hidden">
 
-    <!-- Header Banner Block: Simulated Photoshop Style -->
-    <header class="relative shrink-0 overflow-hidden border-b border-gray-800 bg-gradient-to-r from-gray-900 via-darkBg to-gray-900 py-6 px-6">
-        <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-cyan-900/20 via-transparent to-transparent pointer-events-none"></div>
-        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 relative z-10">
-            <div class="text-center md:text-left">
-                <span class="text-xs uppercase tracking-[0.3em] text-cyberTeal font-bold">Joe Jusko Tribute Master Series</span>
-                <h1 class="text-3xl md:text-4xl font-display font-extrabold tracking-wider text-white mt-1">
-                    MARVEL '92 PLATINUM <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyberTeal to-accentPurp">VAULT</span>
-                </h1>
-            </div>
-            
-            <!-- Navigation Tabs -->
-            <div class="flex p-1 bg-gray-950/80 rounded-xl border border-gray-800">
-                <button onclick="switchTab('dashboard')" id="tab-dashboard" class="tab-btn px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 bg-cyberTeal text-black font-semibold">
-                    Dashboard
-                </button>
-                <button onclick="switchTab('matrix')" id="tab-matrix" class="tab-btn px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 text-gray-400 hover:text-white">
-                    Master Matrix
-                </button>
-                <button onclick="switchTab('ledger')" id="tab-ledger" class="tab-btn px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 text-gray-400 hover:text-white">
-                    Variation Ledger
-                </button>
-            </div>
+    <div id="flash-effect" class="absolute inset-0 pointer-events-none z-50"></div>
+
+    <header class="border-b border-gray-900 bg-gray-950/90 backdrop-blur px-4 py-3 shrink-0 flex items-center justify-between z-30">
+        <div>
+            <span class="text-[9px] uppercase tracking-[0.25em] text-cyan-400 font-bold block">Mobile Companion</span>
+            <h1 class="text-lg font-display font-bold text-white tracking-wider">MARVEL '92 AI SCANNER</h1>
+        </div>
+        <div class="flex gap-2">
+            <button id="quick-sheet-btn" onclick="openLiveSheet()" class="hidden text-xs px-2.5 py-1.5 bg-cyan-950/40 border border-cyan-800 text-cyan-400 rounded-lg hover:bg-cyan-950/60 transition">
+                📊 Sheet
+            </button>
+            <button onclick="toggleConfig()" class="text-xs px-3 py-1.5 bg-gray-900 border border-gray-800 rounded-lg hover:bg-gray-800 transition">
+                ⚙️ Setup
+            </button>
         </div>
     </header>
 
-    <!-- Main Workspace Frame -->
-    <main class="grow overflow-hidden relative max-w-7xl w-full mx-auto p-4 md:p-6 flex flex-col gap-6">
-        
-        <!-- TAB 1: DASHBOARD VIEW -->
-        <section id="view-dashboard" class="tab-view grow flex flex-col gap-6 overflow-y-auto pr-2">
-            <!-- Banner Grid Intro -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Visual Completion Ring Widget -->
-                <div class="glass-panel p-6 rounded-2xl flex flex-col items-center justify-center relative overflow-hidden group">
-                    <div class="absolute inset-0 bg-gradient-to-b from-cyan-500/5 to-transparent pointer-events-none"></div>
-                    <h3 class="text-gray-400 text-xs uppercase tracking-widest mb-4">Base Set Progress</h3>
-                    
-                    <div class="relative w-36 h-36 flex items-center justify-center">
-                        <svg class="absolute inset-0 transform -rotate-90" viewBox="0 0 100 100">
-                            <circle class="text-gray-900" stroke-width="8" stroke="currentColor" fill="transparent" r="40" cx="50" cy="50"/>
-                            <circle id="progress-circle" class="text-cyberTeal transition-all duration-500" stroke-width="8" stroke-dasharray="251.2" stroke-dashoffset="251.2" stroke-linecap="round" stroke="currentColor" fill="transparent" r="40" cx="50" cy="50"/>
-                        </svg>
-                        <div class="text-center">
-                            <span id="progress-percent" class="text-3xl font-display font-bold text-white">0%</span>
-                            <span class="block text-[10px] text-gray-400">Assembled</span>
-                        </div>
-                    </div>
-                    
-                    <div class="mt-4 text-xs text-gray-400" id="base-count-stats">0 / 100 unique cards secured</div>
-                </div>
-
-                <!-- Global Vault Stat Box Widget -->
-                <div class="glass-panel p-6 rounded-2xl flex flex-col justify-between relative overflow-hidden">
-                    <div class="absolute inset-0 bg-gradient-to-b from-purple-500/5 to-transparent pointer-events-none"></div>
-                    <div>
-                        <h3 class="text-gray-400 text-xs uppercase tracking-widest mb-1">Global Vault Weight</h3>
-                        <p class="text-xs text-gray-500 mb-4">Sum of all master set milestones & extra duplicates</p>
-                    </div>
-                    
-                    <div class="my-2">
-                        <span id="vault-total" class="text-5xl font-display font-extrabold text-white">0</span>
-                        <span class="text-cyberTeal font-bold text-sm ml-2">Total Items</span>
-                    </div>
-                    
-                    <div class="flex items-center gap-2 border-t border-gray-800 pt-4 text-xs text-gray-400 justify-between">
-                        <div>Base: <span id="dash-base-qty" class="text-white font-semibold">0</span></div>
-                        <div>Variants: <span id="dash-var-qty" class="text-white font-semibold">0</span></div>
-                        <div>Parallels: <span id="dash-para-qty" class="text-white font-semibold">0</span></div>
-                    </div>
-                </div>
-
-                <!-- Custom Quick Entry Portal -->
-                <div class="glass-panel p-6 rounded-2xl flex flex-col justify-between border border-cyan-950/50">
-                    <div>
-                        <h3 class="text-cyberTeal text-xs uppercase tracking-widest font-bold mb-2">Vault Log Portal</h3>
-                        <p class="text-xs text-gray-400">Instantly register new masterset parallels or duplicate items directly to your live database.</p>
-                    </div>
-                    
-                    <div class="grid grid-cols-2 gap-2 my-4">
-                        <button onclick="switchTab('ledger')" class="px-4 py-3 bg-gray-950 hover:bg-gray-900 border border-gray-800 hover:border-gray-700 rounded-xl text-xs text-center font-medium text-gray-300 transition duration-150">
-                            + Add Parallel Log
-                        </button>
-                        <button onclick="switchTab('matrix')" class="px-4 py-3 bg-cyberTeal/10 hover:bg-cyberTeal/20 border border-cyberTeal/30 rounded-xl text-xs text-center font-medium text-cyberTeal transition duration-150">
-                            Checklist Matrix
-                        </button>
-                    </div>
-                    <div class="text-[11px] text-gray-500 text-center italic">
-                        Updates real-time matrix percentages natively.
-                    </div>
-                </div>
+    <section id="config-panel" class="hidden shrink-0 bg-gray-950 p-4 border-b border-cyan-950/40 z-30 relative">
+        <div class="max-w-md mx-auto space-y-3">
+            <h3 class="text-xs font-bold text-cyan-400 uppercase tracking-widest">Connect Your System API</h3>
+            
+            <div>
+                <label class="block text-[10px] text-gray-400 mb-1">Google Sheets Web App Deployment URL</label>
+                <input type="text" id="sheets-url" placeholder="https://script.google.com/macros/s/.../exec" class="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-cyan-400">
             </div>
 
-            <!-- Set Breakdown & Quick Filters info -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 grow min-h-[250px]">
-                <div class="glass-panel p-6 rounded-2xl flex flex-col">
-                    <h3 class="text-white font-semibold mb-4 text-sm flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-cyberTeal"></span>
-                        Parallel Rarity Distribution
-                    </h3>
-                    <div id="no-parallels-msg" class="grow flex flex-col items-center justify-center text-center text-gray-500 text-xs p-6 border border-dashed border-gray-800 rounded-xl">
-                        <span>No parallels registered in Ledger yet.</span>
-                        <span class="text-[10px] mt-1">Open the Variation Ledger to log rare items.</span>
-                    </div>
-                    <div id="rarity-breakdown-list" class="hidden grow space-y-3">
-                        <!-- Dynamic distribution renders here -->
-                    </div>
-                </div>
-
-                <div class="glass-panel p-6 rounded-2xl flex flex-col justify-between">
-                    <div>
-                        <h3 class="text-white font-semibold mb-2 text-sm flex items-center gap-2">
-                            <span class="w-2 h-2 rounded-full bg-accentPurp"></span>
-                            Google Sheets Integration Guide
-                        </h3>
-                        <p class="text-xs text-gray-400 mb-4">This layout maps 1-to-1 with optimized spreadsheet configurations. Keep your row structure tight to avoid ledger lag.</p>
-                        
-                        <div class="bg-black/50 p-4 rounded-xl space-y-3 font-mono text-xs text-gray-300 border border-gray-900">
-                            <div>
-                                <span class="text-cyberTeal">Vault Depth Formula:</span>
-                                <code class="block bg-gray-950 p-1.5 rounded mt-1 text-[10px] text-white select-all">=IF(COUNTIF('Variation Ledger'!A:A, A2)>0, "❖ " & COUNTIF('Variation Ledger'!A:A, A2) & " Parallels", "—")</code>
-                            </div>
-                            <div>
-                                <span class="text-cyberTeal">Completion Radar Sparkline:</span>
-                                <code class="block bg-gray-950 p-1.5 rounded mt-1 text-[10px] text-white select-all">=SPARKLINE((COUNTIF('Variation Ledger'!A:A, A2)+N(C2)+N(D2)), {"charttype","bar"; "max",6; "color1","#00E5FF"})</code>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="text-xs text-gray-500 mt-4">
-                        💡 Use standard checkboxes for fast data input, keeping advanced parallel tracking locked in a separate database sheet.
-                    </div>
-                </div>
+            <div>
+                <label class="block text-[10px] text-gray-400 mb-1">Gemini API Key (Leave blank if saved in script properties)</label>
+                <input type="password" id="gemini-key" placeholder="Enter your Google AI Studio API Key..." class="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-1.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-cyan-400">
             </div>
-        </section>
-
-        <!-- TAB 2: MASTER MATRIX VIEW -->
-        <section id="view-matrix" class="tab-view hidden grow flex flex-col gap-4 overflow-hidden">
-            <!-- Filter Bar -->
-            <div class="flex flex-col sm:flex-row gap-4 items-center justify-between shrink-0 glass-panel p-4 rounded-xl">
-                <!-- Search bar -->
-                <div class="relative w-full sm:w-72">
-                    <input type="text" id="matrix-search" oninput="filterMatrixTable()" placeholder="Filter Character..." class="w-full bg-gray-950 border border-gray-800 rounded-lg px-4 py-2 text-xs focus:outline-none focus:border-cyberTeal text-white placeholder-gray-500">
-                </div>
-                
-                <!-- Filter state buttons -->
-                <div class="flex gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
-                    <button onclick="setMatrixFilter('all')" id="filter-all" class="matrix-filter-btn px-3 py-1.5 bg-cyberTeal text-black font-semibold rounded-md text-xs transition">All Cards</button>
-                    <button onclick="setMatrixFilter('collected')" id="filter-collected" class="matrix-filter-btn px-3 py-1.5 bg-gray-950 hover:bg-gray-900 border border-gray-800 rounded-md text-xs transition text-gray-400">Collected Base</button>
-                    <button onclick="setMatrixFilter('missing')" id="filter-missing" class="matrix-filter-btn px-3 py-1.5 bg-gray-950 hover:bg-gray-900 border border-gray-800 rounded-md text-xs transition text-gray-400">Missing Base</button>
-                    <button onclick="setMatrixFilter('parallels')" id="filter-parallels" class="matrix-filter-btn px-3 py-1.5 bg-gray-950 hover:bg-gray-900 border border-gray-800 rounded-md text-xs transition text-gray-400">Has Parallels</button>
-                </div>
-            </div>
-
-            <!-- Scrollable Matrix Grid Table -->
-            <div class="grow overflow-auto rounded-xl border border-gray-800 bg-gray-950">
-                <table class="w-full text-left border-collapse text-xs">
-                    <thead class="sticky top-0 bg-gray-900 text-gray-400 uppercase tracking-wider border-b border-gray-800 z-20">
-                        <tr>
-                            <th class="py-3 px-4 w-16 text-center">Card #</th>
-                            <th class="py-3 px-4">Character</th>
-                            <th class="py-3 px-4 w-28 text-center">Base Card</th>
-                            <th class="py-3 px-4 w-32 text-center">Variant Cover</th>
-                            <th class="py-3 px-4 w-36">Vaulted Depth</th>
-                            <th class="py-3 px-4 w-48">Completion Radar</th>
-                        </tr>
-                    </thead>
-                    <tbody id="matrix-tbody" class="divide-y divide-gray-900">
-                        <!-- Javascript generates 100 character rows dynamically here -->
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
-        <!-- TAB 3: VARIATION LEDGER VIEW -->
-        <section id="view-ledger" class="tab-view hidden grow flex flex-col lg:flex-row gap-6 overflow-hidden">
-            <!-- Left pane: Input Form -->
-            <div class="w-full lg:w-96 flex flex-col gap-4 shrink-0 overflow-y-auto pr-1">
-                <div class="glass-panel p-5 rounded-2xl">
-                    <h3 class="text-white font-semibold text-sm mb-4 flex items-center gap-2">
-                        <span class="w-1.5 h-1.5 rounded-full bg-cyberTeal"></span>
-                        Register Rare Log
-                    </h3>
-                    
-                    <form id="ledger-form" onsubmit="addLedgerEntry(event)" class="space-y-4">
-                        <div>
-                            <label class="block text-gray-400 text-xs mb-1.5">Target Character</label>
-                            <select id="form-card-id" required class="w-full bg-gray-950 border border-gray-800 hover:border-gray-700 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-cyberTeal text-white">
-                                <!-- Option list initialized via JS -->
-                            </select>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-gray-400 text-xs mb-1.5">Brand / Publisher</label>
-                                <input type="text" id="form-brand" placeholder="e.g. Upper Deck" class="w-full bg-gray-950 border border-gray-800 hover:border-gray-700 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-cyberTeal text-white">
-                            </div>
-                            <div>
-                                <label class="block text-gray-400 text-xs mb-1.5">Release Year</label>
-                                <input type="number" id="form-year" placeholder="1992" class="w-full bg-gray-950 border border-gray-800 hover:border-gray-700 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-cyberTeal text-white text-center font-mono">
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="block text-gray-400 text-xs mb-1.5">Trading Card Set Name</label>
-                            <input type="text" id="form-set-name" placeholder="e.g. Marvel Masterpieces" class="w-full bg-gray-950 border border-gray-800 hover:border-gray-700 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-cyberTeal text-white">
-                        </div>
-
-                        <div>
-                            <label class="block text-gray-400 text-xs mb-1.5">Parallel / Substrate Tier</label>
-                            <select id="form-tier" required class="w-full bg-gray-950 border border-gray-800 hover:border-gray-700 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-cyberTeal text-white">
-                                <optgroup label="Chromium Color Parallels">
-                                    <option value="Rainbow">Rainbow</option>
-                                    <option value="Blue Traxx">Blue Traxx</option>
-                                    <option value="Pink Laser">Pink Laser</option>
-                                    <option value="Purple Crystals">Purple Crystals</option>
-                                    <option value="Seismic Gold (#/92)">Seismic Gold (#/92)</option>
-                                    <option value="Orange Lava (#/25)">Orange Lava (#/25)</option>
-                                    <option value="Emerald Surge (#/10)">Emerald Surge (#/10)</option>
-                                    <option value="Golden Treasures (1/1)">Golden Treasures (1/1)</option>
-                                    <option value="Printing Plates (1/1)">Printing Plates (1/1)</option>
-                                </optgroup>
-                                <optgroup label="Precious Metal Gems (PMGs)">
-                                    <option value="PMG Red (#/100)">Red PMG (#/100)</option>
-                                    <option value="PMG Blue (#/50)">Blue PMG (#/50)</option>
-                                    <option value="PMG Green (#/10)">Green PMG (#/10)</option>
-                                    <option value="PMG Gold (1/1)">Gold PMG (1/1)</option>
-                                </optgroup>
-                                <optgroup label="Substrate / Material Variants">
-                                    <option value="Canvas">Canvas</option>
-                                    <option value="Clear Cut">Clear Cut</option>
-                                    <option value="Leather">Leather</option>
-                                    <option value="Lenticular">Lenticular</option>
-                                    <option value="Wood">Wood</option>
-                                    <option value="Metallurgy">Metallurgy</option>
-                                </optgroup>
-                                <optgroup label="Duplicates Inventory">
-                                    <option value="Base Duplicate">Base Duplicate</option>
-                                    <option value="Variant Cover Duplicate">Variant Cover Duplicate</option>
-                                </optgroup>
-                            </select>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-gray-400 text-xs mb-1.5">Serial # (e.g., 05/92)</label>
-                                <input type="text" id="form-serial" placeholder="—" class="w-full bg-gray-950 border border-gray-800 hover:border-gray-700 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-cyberTeal text-white placeholder-gray-600">
-                            </div>
-                            <div>
-                                <label class="block text-gray-400 text-xs mb-1.5">Condition / Grade</label>
-                                <select id="form-grade" class="w-full bg-gray-950 border border-gray-800 hover:border-gray-700 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-cyberTeal text-white">
-                                    <option value="Raw">Raw</option>
-                                    <option value="PSA 10">PSA 10</option>
-                                    <option value="PSA 9">PSA 9</option>
-                                    <option value="BGS 9.5">BGS 9.5</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="block text-gray-400 text-xs mb-1.5">Notes / Source</label>
-                            <input type="text" id="form-notes" placeholder="e.g. Pulled from Box 2" class="w-full bg-gray-950 border border-gray-800 hover:border-gray-700 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-cyberTeal text-white placeholder-gray-600">
-                        </div>
-
-                        <button type="submit" class="w-full py-2.5 bg-cyberTeal hover:bg-cyan-400 transition text-black font-bold rounded-lg text-xs tracking-wider uppercase">
-                            Vault Parallel Item
-                        </button>
-                    </form>
-                </div>
-
-                <!-- Database Tools -->
-                <div class="glass-panel p-5 rounded-2xl border border-gray-800 text-xs">
-                    <h4 class="text-gray-400 font-semibold mb-2">Vault Registry Tools</h4>
-                    <div class="grid grid-cols-2 gap-2">
-                        <button onclick="exportCollectionData()" class="px-3 py-2 bg-gray-900 hover:bg-gray-800 rounded-lg border border-gray-800 text-gray-300">
-                            Backup JSON
-                        </button>
-                        <button onclick="resetAppDatabase()" class="px-3 py-2 bg-red-950/20 hover:bg-red-950/40 border border-red-900/40 rounded-lg text-red-400">
-                            Reset App
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Right pane: Ledger Log list -->
-            <div class="grow flex flex-col gap-4 overflow-hidden">
-                <div class="flex items-center justify-between shrink-0">
-                    <h3 class="text-white font-semibold text-sm">Variation Ledger Database</h3>
-                    <div id="ledger-count-badge" class="text-[11px] bg-cyan-950/50 border border-cyan-800 text-cyberTeal font-mono rounded px-2.5 py-0.5">
-                        0 Entries
-                    </div>
-                </div>
-
-                <div class="grow overflow-auto rounded-xl border border-gray-800 bg-gray-950">
-                    <table class="w-full text-left border-collapse text-xs">
-                        <thead class="sticky top-0 bg-gray-900 text-gray-400 uppercase tracking-wider border-b border-gray-800 z-10">
-                            <tr>
-                                <th class="py-3 px-4 w-20 text-center">Card #</th>
-                                <th class="py-3 px-4">Character</th>
-                                <th class="py-3 px-4">Brand</th>
-                                <th class="py-3 px-4 w-24 text-center">Year</th>
-                                <th class="py-3 px-4">Set Name</th>
-                                <th class="py-3 px-4">Parallel / Treatment</th>
-                                <th class="py-3 px-4 w-28">Serial #</th>
-                                <th class="py-3 px-4 w-24">Grade</th>
-                                <th class="py-3 px-4">Notes</th>
-                                <th class="py-3 px-4 w-16 text-center">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="ledger-tbody" class="divide-y divide-gray-900">
-                            <!-- Dynamic running entries generated here -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <!-- App Message Toast Alert -->
-    <div id="app-toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 bg-gray-950 border border-cyberTeal/40 rounded-xl px-4 py-3 shadow-2xl flex items-center gap-3">
-        <span class="w-2 h-2 rounded-full bg-cyberTeal animate-pulse"></span>
-        <span id="toast-text" class="text-xs text-white">Card vaulted successfully.</span>
-    </div>
-
-    <!-- CUSTOM CONFIRMATION OVERLAY (Bypasses window.confirm block) -->
-    <div id="confirm-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden">
-        <div class="glass-panel max-w-sm w-full p-6 rounded-2xl border border-red-900/40 text-center relative z-50">
-            <div class="w-12 h-12 bg-red-950/20 border border-red-900/30 rounded-full flex items-center justify-center text-red-500 text-xl font-bold mx-auto mb-3">
-                ⚠️
-            </div>
-            <h4 class="text-white font-bold text-base mb-2">Reset App Database?</h4>
-            <p class="text-xs text-gray-400 mb-6">Are you sure you want to clear your collection? This will permanently wipe all local checklist data and ledger logs.</p>
-            <div class="flex gap-3">
-                <button onclick="closeConfirmModal()" class="flex-1 py-2.5 bg-gray-900 hover:bg-gray-800 text-gray-400 rounded-xl text-xs font-semibold transition">Cancel</button>
-                <button onclick="executeReset()" class="flex-1 py-2.5 bg-red-950/40 hover:bg-red-900/40 border border-red-800/60 text-red-400 rounded-xl text-xs font-semibold transition">Wipe All</button>
+            
+            <div class="flex gap-2">
+                <button onclick="saveConfiguration()" class="grow py-1.5 bg-cyan-400 text-black font-bold rounded-lg text-xs hover:bg-cyan-300">
+                    Save Config
+                </button>
+                <button onclick="toggleConfig()" class="px-3 py-1.5 bg-gray-900 text-gray-400 rounded-lg text-xs">
+                    Cancel
+                </button>
             </div>
         </div>
-    </div>
+    </section>
+
+    <main class="grow relative flex flex-col justify-between overflow-hidden">
+        
+        <video id="webcam-preview" autoplay playsinline muted class="absolute inset-0 w-full h-full object-cover z-0"></video>
+        <canvas id="photo-canvas" class="hidden"></canvas>
+
+        <div class="absolute inset-0 z-10 pointer-events-none flex items-center justify-center">
+            <div class="w-72 h-96 border-2 border-cyan-400/80 rounded-xl relative hud-scan-box flex flex-col justify-between p-4">
+                <div class="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-cyan-400 rounded-tl-lg neon-border"></div>
+                <div class="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-cyan-400 rounded-tr-lg neon-border"></div>
+                <div class="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-cyan-400 rounded-bl-lg neon-border"></div>
+                <div class="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-cyan-400 rounded-br-lg neon-border"></div>
+                
+                <div id="hud-instructions" class="text-[10px] bg-black/85 border border-cyan-900/60 rounded p-1.5 text-center text-cyan-400 w-full select-none backdrop-blur-xs">
+                    STEP 1: ALIGN CARD FRONT
+                </div>
+                
+                <div id="hud-details" class="text-[9px] text-gray-300 bg-black/85 border border-gray-900 p-2 text-center rounded select-none">
+                    Snap the front illustration side first.
+                </div>
+            </div>
+        </div>
+
+        <div id="status-indicator" class="absolute inset-x-4 top-4 z-20 hidden">
+            <div class="bg-gray-950/95 border border-cyan-500/30 backdrop-blur-md p-4 rounded-xl flex items-center gap-3 shadow-2xl">
+                <span class="w-3.5 h-3.5 rounded-full bg-cyan-400 animate-ping"></span>
+                <div class="grow">
+                    <h4 class="text-xs font-bold text-white uppercase tracking-wider" id="status-headline">Capturing Front...</h4>
+                    <p class="text-[10px] text-gray-400" id="status-subline">Ready for capture.</p>
+                </div>
+            </div>
+        </div>
+
+        <button id="abort-btn" onclick="resetScanStates()" class="absolute right-4 bottom-32 z-20 hidden bg-red-950/50 border border-red-900 text-red-400 text-xs px-3 py-1.5 rounded-lg">
+            ✕ Restart
+        </button>
+
+        <style>
+            .button-container {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 16px;
+                width: 100%;
+                margin-top: auto;
+                background: linear-gradient(to top, black, rgba(0,0,0,0.9), transparent);
+                padding: 40px 24px 32px 24px;
+            }
+        </style>
+        <div class="relative z-20 button-container">
+            <button id="snap-btn" onclick="captureAndScanCard()" class="w-16 h-16 rounded-full bg-white border-4 border-cyan-400 hover:bg-cyan-200 active:scale-95 transition flex items-center justify-center shadow-lg">
+                <div id="snap-btn-inner" class="w-10 h-10 rounded-full bg-cyan-400 transition-all duration-350"></div>
+            </button>
+            <span id="snap-btn-label" class="text-xs text-cyan-400 font-bold uppercase tracking-widest select-none">SNAP FRONT</span>
+        </div>
+    </main>
+
+    <section id="verification-modal" class="hidden absolute inset-0 z-40 bg-black/95 backdrop-blur-md flex flex-col items-center justify-center p-4 overflow-y-auto">
+        <div class="w-full max-w-md holo-card rounded-2xl p-6 flex flex-col shadow-2xl space-y-4">
+            
+            <div class="text-center">
+                <span class="text-[10px] uppercase tracking-[0.2em] text-cyan-400 font-bold">Verification Gatekeeper</span>
+                <h2 class="text-lg font-bold text-white mt-1">Review & Edit Detected Card</h2>
+                <p class="text-[11px] text-gray-400 mt-0.5">Correct any AI typos before writing to Google Sheets</p>
+            </div>
+
+            <div class="space-y-3 bg-gray-950/80 border border-slate-900 rounded-xl p-4">
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="col-span-1">
+                        <label class="block text-[10px] text-gray-400 mb-1">Card #</label>
+                        <input type="number" id="verify-card-number" class="w-full bg-gray-900 border border-gray-800 rounded px-2.5 py-1.5 text-xs text-white text-center font-bold font-mono">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-[10px] text-gray-400 mb-1">Character Name</label>
+                        <input type="text" id="verify-character" class="w-full bg-gray-900 border border-gray-800 rounded px-2.5 py-1.5 text-xs text-white font-bold">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-[10px] text-gray-400 mb-1">Brand (Publisher)</label>
+                        <input type="text" id="verify-brand" placeholder="e.g. Upper Deck, Topps" class="w-full bg-gray-900 border border-gray-800 rounded px-2.5 py-1.5 text-xs text-white">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-gray-400 mb-1">Release Year</label>
+                        <input type="number" id="verify-year" placeholder="e.g. 1992" class="w-full bg-gray-900 border border-gray-800 rounded px-2.5 py-1.5 text-xs text-white text-center font-mono">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] text-gray-400 mb-1">Trading Card Set Name</label>
+                    <input type="text" id="verify-set-name" placeholder="e.g. Marvel Masterpieces" class="w-full bg-gray-900 border border-gray-800 rounded px-2.5 py-1.5 text-xs text-white">
+                </div>
+
+                <div>
+                    <label class="block text-[10px] text-gray-400 mb-1">Parallel / Treatment Tier</label>
+                    <select id="verify-parallel" class="w-full bg-gray-900 border border-gray-800 rounded px-2.5 py-1.5 text-xs text-white font-bold">
+                        <option value="Base Standard">Base Standard</option>
+                        <option value="Variant Cover">Variant Cover</option>
+                        <option value="Rainbow">Rainbow</option>
+                        <option value="Blue Traxx">Blue Traxx</option>
+                        <option value="Pink Laser">Pink Laser</option>
+                        <option value="Purple Crystals">Purple Crystals</option>
+                        <option value="Seismic Gold (#/92)">Seismic Gold (#/92)</option>
+                        <option value="Orange Lava (#/25)">Orange Lava (#/25)</option>
+                        <option value="Emerald Surge (#/10)">Emerald Surge (#/10)</option>
+                        <option value="Golden Treasures (1/1)">Golden Treasures (1/1)</option>
+                        <option value="Printing Plates (1/1)">Printing Plates (1/1)</option>
+                        <option value="Canvas">Canvas</option>
+                        <option value="Clear Cut (Plexi)">Clear Cut (Plexi)</option>
+                        <option value="Leather">Leather</option>
+                        <option value="Lenticular">Lenticular</option>
+                        <option value="Wood">Wood</option>
+                        <option value="Metallurgy">Metallurgy</option>
+                        <option value="PMG Red (#/100)">PMG Red (#/100)</option>
+                        <option value="PMG Blue (#/50)">PMG Blue (#/50)</option>
+                        <option value="PMG Green (#/10)">PMG Green (#/10)</option>
+                        <option value="PMG Gold (1/1)">PMG Gold (1/1)</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-[10px] text-gray-400 mb-1">Serial Stamp (e.g. 05/92)</label>
+                        <input type="text" id="verify-serial" class="w-full bg-gray-900 border border-gray-800 rounded px-2.5 py-1.5 text-xs text-white font-mono text-center">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-gray-400 mb-1">Grade</label>
+                        <select id="verify-grade" class="w-full bg-gray-900 border border-gray-800 rounded px-2.5 py-1.5 text-xs text-white text-center">
+                            <option value="Raw">Raw</option>
+                            <option value="PSA 10">PSA 10</option>
+                            <option value="PSA 9">PSA 9</option>
+                            <option value="BGS 9.5">BGS 9.5</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-[10px] text-gray-400 mb-1">Purchase Cost ($)</label>
+                        <input type="number" id="verify-cost" step="0.01" value="0.00" class="w-full bg-gray-900 border border-gray-800 rounded px-2.5 py-1.5 text-xs text-emerald-400 font-bold text-center">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-gray-400 mb-1">Est. Value ($)</label>
+                        <input type="number" id="verify-value" step="0.01" value="0.00" class="w-full bg-gray-900 border border-gray-800 rounded px-2.5 py-1.5 text-xs text-cyan-400 font-bold text-center">
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-2 pt-2">
+                <button onclick="commitVerifiedData()" class="w-full py-2.5 bg-cyan-400 text-black font-extrabold rounded-xl text-xs tracking-wider uppercase hover:bg-cyan-300 transition shadow-lg">
+                    Confirm & Log to Sheet
+                </button>
+                <button onclick="resetScanStates(); dismissVerificationModal();" class="w-full py-2 bg-gray-900 border border-gray-800 text-gray-400 rounded-xl text-xs hover:bg-gray-850 transition">
+                    Discard & Cancel Scan
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <section id="success-modal" class="hidden absolute inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-6">
+        <div class="w-full max-w-sm holo-card rounded-2xl p-6 flex flex-col items-center text-center shadow-2xl">
+            
+            <div class="w-12 h-12 bg-emerald-500/10 border border-emerald-500/30 rounded-full flex items-center justify-center text-emerald-400 text-xl font-bold mb-3">
+                ✓
+            </div>
+
+            <span class="text-[10px] uppercase tracking-[0.2em] text-emerald-400 font-bold">Successfully Stamped!</span>
+            <h2 class="text-lg font-bold text-white mt-1">Vault Database Updated</h2>
+            
+            <div class="w-full bg-slate-950/80 border border-slate-900 rounded-xl p-4 my-5 text-left relative overflow-hidden">
+                <div class="absolute top-0 right-0 px-2 py-0.5 bg-cyan-500/10 border-b border-l border-cyan-500/30 text-[9px] font-mono text-cyan-400 uppercase font-bold" id="rec-type">
+                    Vault Ledger Entry
+                </div>
+                
+                <div class="flex items-center gap-4">
+                    <div class="w-14 h-14 bg-cyan-950/40 border border-cyan-500/30 rounded-lg flex items-center justify-center font-display font-black text-2xl text-cyan-400 shadow-inner" id="rec-num">
+                        #46
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-white leading-tight" id="rec-character">Jean Grey</h3>
+                        <p class="text-xs text-gray-400 mt-1">Parallel: <span class="text-cyan-400 font-bold" id="rec-parallel">PMG Blue</span></p>
+                        <p class="text-xs text-gray-400 mt-0.5">Serial: <span class="text-gray-300 font-mono" id="rec-serial">12/50</span></p>
+                    </div>
+                </div>
+                <div class="mt-3 pt-3 border-t border-gray-900 flex justify-between items-center text-[10px] text-gray-500 font-mono">
+                    <span>Server Time:</span>
+                    <span id="rec-timestamp" class="text-gray-400">Loading...</span>
+                </div>
+            </div>
+
+            <p class="text-xs text-gray-400 max-w-xs mb-5" id="rec-action">
+                Entry verified and processed.
+            </p>
+
+            <div class="w-full flex flex-col gap-2">
+                <button onclick="dismissSuccessModal(); resetScanStates();" class="w-full py-2.5 bg-cyan-400 text-black font-extrabold rounded-xl text-xs tracking-wider uppercase hover:bg-cyan-300 transition">
+                    Scan Another Card
+                </button>
+            </div>
+        </div>
+    </section>
 
     <script>
-        // Official 2024 Skybox Marvel Masterpieces '92 Platinum Character Checklist
-        const CHARACTER_LIST = [
-            "Blob", "Johnny Blaze", "Black Widow", "Black Panther", "Black Cat", "Bishop", "Beast", "Archangel", "Apocalypse", "Adam Warlock",
-            "Darkhawk", "Daredevil", "Cyclops", "Colossus", "Captain Britain", "Captain America", "Cage", "Cable", "Bullseye", "Dazzler",
-            "Enchantress", "Elektra", "Electro", "Doctor Strange", "Doctor Octopus", "Doctor Doom", "Dormammu", "Deathlok", "Gambit", "Galactus",
-            "Human Torch", "Hulk", "Hobgoblin", "Hawkeye", "Havok", "Green Goblin", "Ghost Rider", "Iron Man", "Invisible Woman", "Iceman",
-            "Lizard", "Leader", "Kingpin", "Kang", "Juggernaut", "Jean Grey", "Scarlet Witch", "Major Victory", "Magneto", "Loki",
-            "Moon Knight", "Mole Man", "Mojo", "Mephisto", "Feral", "Namorita", "Namor", "Mister Sinister", "Mr. Fantastic", "Morbius",
-            "Nightmare", "Nightcrawler", "Night Thrasher", "Nick Fury", "Psylocke", "Professor X", "Phoenix", "Nova", "Northstar", "Nomad",
-            "Quicksilver", "Quasar", "Deathbird", "Shatterstar", "Shadowcat", "Sauron", "Sandman", "Sabretooth", "Rogue", "Red Skull",
-            "Silver Sable", "She-Hulk", "Thanos", "Super Skrull", "Strong Guy", "Storm", "Spider-Man", "Speedball", "Sleepwalker", "Silver Surfer",
-            "Thing", "Thor", "Wonder Man", "Wolverine", "White Queen", "Weapon Omega", "Venom", "Ultron", "Tombstone", "Jubilee"
-        ];
+        let stream = null;
+        let currentStep = "front"; 
+        let imageFrontBase64 = null;
+        let imageBackBase64 = null;
+        let config = { sheetsUrl: "", geminiKey: "" };
+        let activeCardData = null;
 
-        // Core App Database State
-        let AppState = {
-            matrix: {},    // Map of cardId -> { base: boolean, variant: boolean }
-            ledger: []     // Array of entries: { id, cardId, tier, serial, grade, notes }
+        window.onload = function() {
+            loadConfig();
+            initWebcam();
         };
 
-        // Initialize state, loading from localStorage if existing
-        function initApp() {
-            const savedData = localStorage.getItem('marvel_92_platinum_vault');
-            if (savedData) {
-                try {
-                    AppState = JSON.parse(savedData);
-                } catch(e) {
-                    console.error("Corruption detected inside database. Re-initializing.");
-                    resetStateToDefault();
+        function loadConfig() {
+            const saved = localStorage.getItem('marvel_scanner_config');
+            if (saved) {
+                config = JSON.parse(saved);
+                document.getElementById('sheets-url').value = config.sheetsUrl || "";
+                document.getElementById('gemini-key').value = config.geminiKey || "";
+                if (config.sheetsUrl) {
+                    document.getElementById('quick-sheet-btn').classList.remove('hidden');
                 }
             } else {
-                resetStateToDefault();
+                toggleConfig();
+            }
+        }
+
+        function toggleConfig() {
+            const panel = document.getElementById('config-panel');
+            panel.classList.toggle('hidden');
+        }
+
+        function saveConfiguration() {
+            config.sheetsUrl = document.getElementById('sheets-url').value.trim();
+            config.geminiKey = document.getElementById('gemini-key').value.trim();
+            localStorage.setItem('marvel_scanner_config', JSON.stringify(config));
+            toggleConfig();
+            if (config.sheetsUrl) {
+                document.getElementById('quick-sheet-btn').classList.remove('hidden');
+            }
+            alert("App parameters updated successfully!");
+        }
+
+        function openLiveSheet() {
+            if (config.sheetsUrl) {
+                window.open(config.sheetsUrl, '_blank');
+            } else {
+                alert("Please save your Google Sheets Web App URL first.");
+            }
+        }
+
+        async function initWebcam() {
+            const video = document.getElementById('webcam-preview');
+            const constraints = {
+                video: { facingMode: { exact: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
+                audio: false
+            };
+            try {
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = stream;
+            } catch (err) {
+                console.warn("Environmental camera failed. Accessing standard fallback:", err);
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                    video.srcObject = stream;
+                } catch (e) {
+                    alert("Camera Permission Error. Check device configurations.");
+                }
+            }
+        }
+
+        function triggerFlash() {
+            if (navigator.vibrate) navigator.vibrate(80);
+            const flashEl = document.getElementById('flash-effect');
+            flashEl.classList.add('flash-active');
+            setTimeout(() => { flashEl.classList.remove('flash-active'); }, 300);
+        }
+
+        async function captureAndScanCard() {
+            if (!config.sheetsUrl) {
+                alert("Setup Required: Input Web App URL in config first.");
+                toggleConfig();
+                return;
             }
 
-            renderChecklistDropdowns();
-            renderMatrixTable();
-            renderLedgerTable();
-            updateDashboardMetrics();
+            const video = document.getElementById('webcam-preview');
+            const canvas = document.getElementById('photo-canvas');
+            const ctx = canvas.getContext('2d');
+            const statusDiv = document.getElementById('status-indicator');
+            const statusHeadline = document.getElementById('status-headline');
+            const statusSubline = document.getElementById('status-subline');
+            const snapBtn = document.getElementById('snap-btn');
+            const snapBtnInner = document.getElementById('snap-btn-inner');
+            const snapBtnLabel = document.getElementById('snap-btn-label');
+            const hudInstructions = document.getElementById('hud-instructions');
+            const hudDetails = document.getElementById('hud-details');
+            const abortBtn = document.getElementById('abort-btn');
+
+            // HIGH PERFORMANCE CLIENT-SIDE DOWNSCALER MATRIX:
+            // Prevents network buffer timeouts and keeps payload sizes under Google's execution boundaries.
+            const maxDimension = 1024;
+            let targetWidth = video.videoWidth || 1280;
+            let targetHeight = video.videoHeight || 720;
+
+            if (targetWidth > targetHeight && targetWidth > maxDimension) {
+                targetHeight = Math.round((targetHeight * maxDimension) / targetWidth);
+                targetWidth = maxDimension;
+            } else if (targetHeight > targetWidth && targetHeight > maxDimension) {
+                targetWidth = Math.round((targetWidth * maxDimension) / targetHeight);
+                targetHeight = maxDimension;
+            }
+
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+            ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
             
-            // Post initialization message to system
-            showToast("System V1.00 Vault initialized successfully!");
-        }
+            const base64Data = canvas.toDataURL('image/jpeg', 0.82).split(',')[1];
+            triggerFlash();
 
-        function resetStateToDefault() {
-            AppState.matrix = {};
-            for (let i = 1; i <= 100; i++) {
-                AppState.matrix[i] = { base: false, variant: false };
-            }
-            AppState.ledger = [];
-            saveState();
-        }
-
-        function saveState() {
-            localStorage.setItem('marvel_92_platinum_vault', JSON.stringify(AppState));
-        }
-
-        // Switch App views
-        function switchTab(target) {
-            document.querySelectorAll('.tab-view').forEach(view => view.classList.add('hidden'));
-            document.getElementById(`view-${target}`).classList.remove('hidden');
-
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.className = "tab-btn px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 text-gray-400 hover:text-white";
-            });
-            
-            const activeBtn = document.getElementById(`tab-${target}`);
-            activeBtn.className = "tab-btn px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 bg-cyberTeal text-black font-semibold";
-        }
-
-        // Render target drop-down lists dynamically
-        function renderChecklistDropdowns() {
-            const select = document.getElementById('form-card-id');
-            select.innerHTML = '';
-            for (let i = 1; i <= 100; i++) {
-                const opt = document.createElement('option');
-                opt.value = i;
-                opt.textContent = `#${i} - ${CHARACTER_LIST[i-1]}`;
-                select.appendChild(opt);
-            }
-        }
-
-        let activeMatrixFilter = 'all';
-
-        function renderMatrixTable() {
-            const tbody = document.getElementById('matrix-tbody');
-            tbody.innerHTML = '';
-
-            for (let i = 1; i <= 100; i++) {
-                const charName = CHARACTER_LIST[i-1];
-                const cardState = AppState.matrix[i] || { base: false, variant: false };
+            if (currentStep === "front") {
+                imageFrontBase64 = base64Data;
+                currentStep = "back";
+                hudInstructions.textContent = "STEP 2: ALIGN CARD BACK";
+                hudInstructions.className = "text-[10px] bg-black/85 border border-purple-900/60 rounded p-1.5 text-center text-purple-400 w-full select-none";
+                hudDetails.textContent = "Flip card over to capture the serial number and text details.";
+                snapBtnInner.className = "w-10 h-10 rounded-full bg-purple-500";
+                snapBtnLabel.textContent = "SNAP BACK";
+                snapBtnLabel.className = "text-xs text-purple-400 font-bold uppercase tracking-widest select-none";
+                abortBtn.classList.remove('hidden');
                 
-                // Count parallels from ledger
-                const parallelCount = AppState.ledger.filter(entry => Number(entry.cardId) === i).length;
-                const vaultText = parallelCount > 0 ? `❖ ${parallelCount} Parallels` : '—';
-                
-                // Completion percentage calculations
-                const baseWeight = cardState.base ? 1 : 0;
-                const varWeight = cardState.variant ? 1 : 0;
-                const radarScore = baseWeight + varWeight + parallelCount;
-                const progressPercent = Math.min(100, Math.round((radarScore / 6) * 100));
+                statusHeadline.textContent = "Front Captured!";
+                statusSubline.textContent = "Flip card and scan the back side.";
+                statusDiv.classList.remove('hidden');
+                setTimeout(() => { statusDiv.classList.add('hidden'); }, 2000);
+                return;
+            }
 
-                // App-level search matches
-                const searchVal = document.getElementById('matrix-search')?.value.toLowerCase() || '';
-                const matchesSearch = charName.toLowerCase().includes(searchVal) || i.toString() === searchVal;
+            imageBackBase64 = base64Data;
+            statusHeadline.textContent = "Processing Raw Scans...";
+            statusSubline.textContent = "Compressing textures & piping data directly to Gemini AI...";
+            statusDiv.classList.remove('hidden');
+            snapBtn.disabled = true;
+            snapBtn.classList.add('opacity-40');
+            abortBtn.classList.add('hidden');
 
-                // Match filter criteria
-                let matchesFilter = true;
-                if (activeMatrixFilter === 'collected') matchesFilter = cardState.base;
-                if (activeMatrixFilter === 'missing') matchesFilter = !cardState.base;
-                if (activeMatrixFilter === 'parallels') matchesFilter = parallelCount > 0;
+            try {
+                const response = await fetch(config.sheetsUrl, {
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: "analyze",
+                        imageFront: imageFrontBase64,
+                        imageBack: imageBackBase64,
+                        apiKey: config.geminiKey
+                    })
+                });
 
-                if (!matchesSearch || !matchesFilter) continue;
+                const result = await response.json();
+                if (!result.success) throw new Error(result.error || "Analysis engine failed.");
 
-                const tr = document.createElement('tr');
-                tr.id = `row-${i}`;
-                tr.className = `border-b border-gray-900/60 hover:bg-gray-900/20 transition-all ${cardState.base ? 'bg-panelBg/15' : ''}`;
-                
-                tr.innerHTML = `
-                    <td class="py-3.5 px-4 text-center font-mono font-bold text-gray-500">${i}</td>
-                    <td class="py-3.5 px-4 font-semibold text-white">${charName}</td>
-                    <td class="py-3.5 px-4 text-center">
-                        <input type="checkbox" onchange="toggleMatrixBox(${i}, 'base', this.checked)" ${cardState.base ? 'checked' : ''} class="w-4 h-4 rounded bg-gray-950 border-gray-800 text-cyberTeal focus:ring-0 focus:ring-offset-0 cursor-pointer">
-                    </td>
-                    <td class="py-3.5 px-4 text-center">
-                        <input type="checkbox" onchange="toggleMatrixBox(${i}, 'variant', this.checked)" ${cardState.variant ? 'checked' : ''} class="w-4 h-4 rounded bg-gray-950 border-gray-800 text-accentPurp focus:ring-0 focus:ring-offset-0 cursor-pointer">
-                    </td>
-                    <td class="py-3.5 px-4 font-mono font-bold text-xs ${parallelCount > 0 ? 'text-cyberTeal' : 'text-gray-600'}">
-                        ${vaultText}
-                    </td>
-                    <td class="py-3.5 px-4">
-                        <div class="flex items-center gap-3">
-                            <div class="grow bg-gray-900 h-2.5 rounded-full overflow-hidden border border-gray-800">
-                                <div class="bg-gradient-to-r from-cyberTeal to-accentPurp h-full transition-all duration-300" style="width: ${progressPercent}%"></div>
-                            </div>
-                            <span class="font-mono text-[10px] text-gray-400 w-8 text-right">${progressPercent}%</span>
-                        </div>
-                    </td>
-                `;
-                tbody.appendChild(tr);
+                activeCardData = result.card;
+                document.getElementById('verify-card-number').value = activeCardData.cardNumber;
+                document.getElementById('verify-character').value = activeCardData.character;
+                document.getElementById('verify-brand').value = activeCardData.brand || "SkyBox / Upper Deck";
+                document.getElementById('verify-year').value = activeCardData.year || "1992";
+                document.getElementById('verify-set-name').value = activeCardData.setName || "Marvel Masterpieces";
+                document.getElementById('verify-parallel').value = activeCardData.parallel;
+                document.getElementById('verify-serial').value = activeCardData.serial || "—";
+                document.getElementById('verify-grade').value = "Raw";
+                document.getElementById('verify-cost').value = "0.00";
+                document.getElementById('verify-value').value = "0.00";
+
+                statusDiv.classList.add('hidden');
+                document.getElementById('verification-modal').classList.remove('hidden');
+
+            } catch (err) {
+                alert("Scan Resolution Failed: " + err.message);
+                statusDiv.classList.add('hidden');
+                resetScanStates();
             }
         }
 
-        function toggleMatrixBox(cardId, type, isChecked) {
-            if (!AppState.matrix[cardId]) {
-                AppState.matrix[cardId] = { base: false, variant: false };
+        async function commitVerifiedData() {
+            const num = parseInt(document.getElementById('verify-card-number').value);
+            const char = document.getElementById('verify-character').value.trim();
+            const brand = document.getElementById('verify-brand').value.trim();
+            const year = parseInt(document.getElementById('verify-year').value) || 1992;
+            const setName = document.getElementById('verify-set-name').value.trim();
+            const para = document.getElementById('verify-parallel').value;
+            const serial = document.getElementById('verify-serial').value.trim();
+            const grade = document.getElementById('verify-grade').value;
+            const cost = parseFloat(document.getElementById('verify-cost').value) || 0;
+            const value = parseFloat(document.getElementById('verify-value').value) || 0;
+
+            if (isNaN(num) || num < 1 || num > 100) {
+                alert("Please verify Card # is a valid number between 1 and 100.");
+                return;
             }
-            AppState.matrix[cardId][type] = isChecked;
-            saveState();
-            
-            // Update UI components dynamically
-            updateDashboardMetrics();
-            renderMatrixTable();
-            
-            showToast(`${CHARACTER_LIST[cardId-1]} checklist updated!`);
-        }
+            if (!char) {
+                alert("Character name cannot be blank.");
+                return;
+            }
 
-        function filterMatrixTable() {
-            renderMatrixTable();
-        }
-
-        function setMatrixFilter(filter) {
-            activeMatrixFilter = filter;
-            document.querySelectorAll('.matrix-filter-btn').forEach(btn => {
-                btn.className = "matrix-filter-btn px-3 py-1.5 bg-gray-950 hover:bg-gray-900 border border-gray-800 rounded-md text-xs transition text-gray-400";
-            });
-            
-            const activeBtn = document.getElementById(`filter-${filter}`);
-            activeBtn.className = "matrix-filter-btn px-3 py-1.5 bg-cyberTeal text-black font-semibold rounded-md text-xs transition";
-            renderMatrixTable();
-        }
-
-        function addLedgerEntry(event) {
-            event.preventDefault();
-
-            const cardId = document.getElementById('form-card-id').value;
-            const brand = document.getElementById('form-brand').value.trim() || 'SkyBox / Upper Deck';
-            const year = document.getElementById('form-year').value.trim() || '1992';
-            const setName = document.getElementById('form-set-name').value.trim() || 'Marvel Masterpieces';
-            const tier = document.getElementById('form-tier').value;
-            const serial = document.getElementById('form-serial').value.trim() || '—';
-            const grade = document.getElementById('form-grade').value;
-            const notes = document.getElementById('form-notes').value.trim() || '—';
-
-            const newEntry = {
-                id: Date.now().toString(),
-                cardId: cardId,
+            const verifiedData = {
+                cardNumber: num,
+                character: char,
                 brand: brand,
                 year: year,
                 setName: setName,
-                tier: tier,
+                parallel: para,
                 serial: serial,
                 grade: grade,
-                notes: notes
+                cost: cost,
+                value: value
             };
 
-            AppState.ledger.unshift(newEntry);
-            saveState();
+            const statusHeadline = document.getElementById('status-headline');
+            const statusSubline = document.getElementById('status-subline');
+            const statusDiv = document.getElementById('status-indicator');
 
-            // Refresh UI Views
-            renderLedgerTable();
-            renderMatrixTable();
-            updateDashboardMetrics();
+            document.getElementById('verification-modal').classList.add('hidden');
+            statusHeadline.textContent = "Writing to Database...";
+            statusSubline.textContent = "Stamping precise transactional ledger timestamp...";
+            statusDiv.classList.remove('hidden');
 
-            // Reset Input Form
-            document.getElementById('ledger-form').reset();
-            
-            showToast(`Logged Parallel for ${CHARACTER_LIST[cardId-1]} into Vault!`);
-        }
+            try {
+                const response = await fetch(config.sheetsUrl, {
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: "commit",
+                        cardData: verifiedData
+                    })
+                });
 
-        function deleteLedgerEntry(id) {
-            AppState.ledger = AppState.ledger.filter(entry => entry.id !== id);
-            saveState();
+                const result = await response.json();
+                if (!result.success) throw new Error(result.error || "Failed database handshake.");
 
-            renderLedgerTable();
-            renderMatrixTable();
-            updateDashboardMetrics();
+                if (navigator.vibrate) navigator.vibrate([100, 50, 150]);
+                statusDiv.classList.add('hidden');
 
-            showToast("Item removed from ledger.");
-        }
+                document.getElementById('rec-num').textContent = `#${verifiedData.cardNumber}`;
+                document.getElementById('rec-character').textContent = verifiedData.character;
+                document.getElementById('rec-parallel').textContent = verifiedData.parallel;
+                document.getElementById('rec-serial').textContent = verifiedData.serial || '—';
+                document.getElementById('rec-timestamp').textContent = result.timestamp;
+                document.getElementById('rec-action').textContent = result.database;
 
-        function renderLedgerTable() {
-            const tbody = document.getElementById('ledger-tbody');
-            tbody.innerHTML = '';
-            
-            document.getElementById('ledger-count-badge').textContent = `${AppState.ledger.length} Entries`;
+                const typeHeader = document.getElementById('rec-type');
+                if (verifiedData.parallel === "Base Standard") {
+                    typeHeader.textContent = "Base Checklist";
+                    typeHeader.className = "absolute top-0 right-0 px-2 py-0.5 bg-emerald-500/10 border-b border-l border-emerald-500/30 text-[9px] font-mono text-emerald-400 uppercase font-bold";
+                } else {
+                    typeHeader.textContent = "Parallel Locked";
+                    typeHeader.className = "absolute top-0 right-0 px-2 py-0.5 bg-cyan-500/10 border-b border-l border-cyan-500/30 text-[9px] font-mono text-cyan-400 uppercase font-bold";
+                }
 
-            if (AppState.ledger.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="10" class="py-8 text-center text-gray-500 italic">
-                            Variation database is empty. Register parallels using the left panel.
-                        </td>
-                    </tr>
-                `;
-                return;
+                document.getElementById('success-modal').classList.remove('hidden');
+
+            } catch (err) {
+                alert("Database Commit Error: " + err.message);
+                statusDiv.classList.add('hidden');
+                document.getElementById('verification-modal').classList.remove('hidden');
             }
-
-            AppState.ledger.forEach(entry => {
-                const charName = CHARACTER_LIST[entry.cardId - 1] || 'Unknown';
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-gray-900/30 transition-all border-b border-gray-900";
-                
-                tr.innerHTML = `
-                    <td class="py-3 px-4 text-center font-mono font-bold text-gray-500">#${entry.cardId}</td>
-                    <td class="py-3 px-4 font-semibold text-white">${charName}</td>
-                    <td class="py-3 px-4 text-gray-300 font-medium">${entry.brand || '—'}</td>
-                    <td class="py-3 px-4 text-center font-mono text-gray-400">${entry.year || '—'}</td>
-                    <td class="py-3 px-4 text-gray-300 max-w-xs truncate">${entry.setName || '—'}</td>
-                    <td class="py-3 px-4">
-                        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${getTierBadgeClass(entry.tier)}">
-                            ${entry.tier}
-                        </span>
-                    </td>
-                    <td class="py-3 px-4 font-mono font-bold text-cyberTeal">${entry.serial}</td>
-                    <td class="py-3 px-4 text-gray-400 font-medium">${entry.grade}</td>
-                    <td class="py-3 px-4 text-gray-400 italic max-w-xs truncate">${entry.notes}</td>
-                    <td class="py-3 px-4 text-center">
-                        <button onclick="deleteLedgerEntry('${entry.id}')" class="text-red-500 hover:text-red-400 transition font-bold px-2 py-1">
-                            ✕
-                        </button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
         }
 
-        // Custom styling tags for different collector parallel types
-        function getTierBadgeClass(tier) {
-            if (tier.includes('PMG')) {
-                if (tier.includes('Red')) return 'bg-red-950/40 border border-red-800 text-red-400';
-                if (tier.includes('Blue')) return 'bg-blue-950/40 border border-blue-800 text-blue-400';
-                if (tier.includes('Green')) return 'bg-green-950/40 border border-green-800 text-green-400';
-                return 'bg-amber-950/50 border border-amber-600 text-amber-300'; // Gold PMG
-            }
-            if (tier.includes('1-of-1') || tier.includes('1/1') || tier.includes('Treasures')) {
-                return 'bg-gradient-to-r from-amber-600 to-yellow-500 border border-yellow-400 text-black font-bold';
-            }
-            if (tier.includes('Duplicate')) {
-                return 'bg-gray-950 border border-gray-800 text-gray-500';
-            }
-            return 'bg-cyan-950/50 border border-cyan-800 text-cyberTeal';
+        function resetScanStates() {
+            const snapBtn = document.getElementById('snap-btn');
+            const snapBtnInner = document.getElementById('snap-btn-inner');
+            const snapBtnLabel = document.getElementById('snap-btn-label');
+            const hudInstructions = document.getElementById('hud-instructions');
+            const hudDetails = document.getElementById('hud-details');
+            const abortBtn = document.getElementById('abort-btn');
+
+            currentStep = "front";
+            imageFrontBase64 = null;
+            imageBackBase64 = null;
+            activeCardData = null;
+
+            hudInstructions.textContent = "STEP 1: ALIGN CARD FRONT";
+            hudInstructions.className = "text-[10px] bg-black/85 border border-cyan-900/60 rounded p-1.5 text-center text-cyan-400 w-full select-none";
+            hudDetails.textContent = "Snap the front illustration side first.";
+
+            snapBtnInner.className = "w-10 h-10 rounded-full bg-cyan-400";
+            snapBtnLabel.textContent = "SNAP FRONT";
+            snapBtnLabel.className = "text-xs text-cyan-400 font-bold uppercase tracking-widest select-none";
+
+            snapBtn.disabled = false;
+            snapBtn.classList.remove('opacity-40');
+            abortBtn.classList.add('hidden');
         }
 
-        function updateDashboardMetrics() {
-            // Unique base cards collected (0-100)
-            let baseCollectedCount = 0;
-            let variantCollectedCount = 0;
-
-            for (let i = 1; i <= 100; i++) {
-                if (AppState.matrix[i]?.base) baseCollectedCount++;
-                if (AppState.matrix[i]?.variant) variantCollectedCount++;
-            }
-
-            // Calculation statistics
-            const progressPercent = Math.round((baseCollectedCount / 100) * 100);
-            
-            // Update Circle Stroke
-            const circle = document.getElementById('progress-circle');
-            const circumference = 2 * Math.PI * 40; // ~251.2
-            const offset = circumference - (progressPercent / 100) * circumference;
-            circle.style.strokeDashoffset = offset;
-
-            // Render numeric stats
-            document.getElementById('progress-percent').textContent = `${progressPercent}%`;
-            document.getElementById('base-count-stats').textContent = `${baseCollectedCount} / 100 unique cards secured`;
-            
-            // Total inventory calculation
-            const grandTotalCount = baseCollectedCount + variantCollectedCount + AppState.ledger.length;
-            document.getElementById('vault-total').textContent = grandTotalCount;
-
-            document.getElementById('dash-base-qty').textContent = baseCollectedCount;
-            document.getElementById('dash-var-qty').textContent = variantCollectedCount;
-            document.getElementById('dash-para-qty').textContent = AppState.ledger.length;
-
-            // Render rarity parallel breakdown
-            renderRarityBreakdown();
+        function dismissVerificationModal() {
+            document.getElementById('verification-modal').classList.add('hidden');
         }
 
-        function renderRarityBreakdown() {
-            const breakdownList = document.getElementById('rarity-breakdown-list');
-            const noParallelsMsg = document.getElementById('no-parallels-msg');
-
-            if (AppState.ledger.length === 0) {
-                breakdownList.classList.add('hidden');
-                noParallelsMsg.classList.remove('hidden');
-                return;
-            }
-
-            breakdownList.classList.remove('hidden');
-            noParallelsMsg.classList.add('hidden');
-            breakdownList.innerHTML = '';
-
-            // Map matching counts of each tier
-            const counts = {};
-            AppState.ledger.forEach(entry => {
-                counts[entry.tier] = (counts[entry.tier] || 0) + 1;
-            });
-
-            // Render beautiful bars representing ledger distribution
-            Object.keys(counts).sort((a,b) => counts[b] - counts[a]).forEach(tier => {
-                const count = counts[tier];
-                const percentageOfTotal = Math.round((count / AppState.ledger.length) * 100);
-
-                const itemDiv = document.createElement('div');
-                itemDiv.className = "flex flex-col gap-1 text-[11px]";
-                itemDiv.innerHTML = `
-                    <div class="flex items-center justify-between text-gray-400">
-                        <span class="font-medium">${tier}</span>
-                        <span class="font-mono text-white font-bold">${count} vaulted (${percentageOfTotal}%)</span>
-                    </div>
-                    <div class="bg-gray-900 h-1.5 rounded-full overflow-hidden">
-                        <div class="bg-cyberTeal h-full" style="width: ${percentageOfTotal}%"></div>
-                    </div>
-                `;
-                breakdownList.appendChild(itemDiv);
-            });
+        function dismissSuccessModal() {
+            document.getElementById('success-modal').classList.add('hidden');
         }
-
-        // Action Toast messaging helper
-        let toastTimeout;
-        function showToast(message) {
-            const toast = document.getElementById('app-toast');
-            document.getElementById('toast-text').textContent = message;
-            
-            toast.className = "fixed bottom-6 right-6 z-50 transform translate-y-0 opacity-100 transition-all duration-300 bg-gray-950 border border-cyberTeal/40 rounded-xl px-4 py-3 shadow-2xl flex items-center gap-3";
-            
-            clearTimeout(toastTimeout);
-            toastTimeout = setTimeout(() => {
-                toast.className = "fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 bg-gray-950 border border-cyberTeal/40 rounded-xl px-4 py-3 shadow-2xl flex items-center gap-3";
-            }, 3000);
-        }
-
-        // Export/Reset systems
-        function exportCollectionData() {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(AppState, null, 2));
-            const downloadAnchor = document.createElement('a');
-            downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", `Marvel_Masterpieces_92_Platinum_Vault_Backup_${Date.now()}.json`);
-            document.body.appendChild(downloadAnchor);
-            downloadAnchor.click();
-            downloadAnchor.remove();
-            showToast("Backup exported successfully!");
-        }
-
-        function resetAppDatabase() {
-            // Open the custom confirmation modal instead of window.confirm
-            document.getElementById('confirm-modal').classList.remove('hidden');
-        }
-
-        function closeConfirmModal() {
-            document.getElementById('confirm-modal').classList.add('hidden');
-        }
-
-        function executeReset() {
-            closeConfirmModal();
-            resetStateToDefault();
-            initApp();
-            showToast("Vault database has been reset.");
-        }
-
-        // Run boot sequence
-        window.onload = function() {
-            initApp();
-        };
     </script>
 </body>
 </html>
-```
-eof
-
-```html:Mobile AI Scanner Portal:scanner.html
